@@ -15,6 +15,7 @@ export type Team = {
   id: string
   name: string
   fifa_code?: string
+  flag_url?: string | null
 }
 
 export type Match = {

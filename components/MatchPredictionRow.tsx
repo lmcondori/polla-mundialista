@@ -6,6 +6,7 @@ import {
   formatMatchDatePeru,
   isMatchPredictionClosed,
 } from '@/lib/matchPrediction'
+import TeamWithFlag from '@/components/TeamWithFlag'
 import type { MatchWithTeams, Prediction } from '@/lib/types'
 
 type MatchPredictionRowProps = {
@@ -85,11 +86,11 @@ export default function MatchPredictionRow({
   return (
     <li className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <p className="text-center text-base font-semibold text-emerald-950 sm:text-left">
-          <span>{match.local_team.name}</span>
-          <span className="mx-2 font-normal text-emerald-600">vs</span>
-          <span>{match.visitor_team.name}</span>
-        </p>
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-base font-semibold text-emerald-950 sm:justify-start">
+          <TeamWithFlag team={match.local_team} />
+          <span className="font-normal text-emerald-600">vs</span>
+          <TeamWithFlag team={match.visitor_team} />
+        </div>
 
         <div className="flex flex-col items-center gap-1 sm:items-end">
           {isClosed ? (

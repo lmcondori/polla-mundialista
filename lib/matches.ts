@@ -14,12 +14,14 @@ const MATCHES_JOIN_SELECT = `
   local_team:teams!matches_local_team_id_fkey (
     id,
     name,
-    fifa_code
+    fifa_code,
+    flag_url
   ),
   visitor_team:teams!matches_visitor_team_id_fkey (
     id,
     name,
-    fifa_code
+    fifa_code,
+    flag_url
   )
 `
 
@@ -123,7 +125,7 @@ async function fetchMatchesWithTeamsSeparate(): Promise<{
   if (teamIds.length > 0) {
     const { data: teamsData, error: teamsError } = await supabase
       .from('teams')
-      .select('id, name, fifa_code')
+      .select('id, name, fifa_code, flag_url')
       .in('id', teamIds)
 
     if (teamsError) {

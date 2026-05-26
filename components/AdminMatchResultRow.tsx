@@ -1,12 +1,25 @@
 'use client'
 
 import { FormEvent, useEffect, useState } from 'react'
+import { formatMatchDatePeru } from '@/lib/matchPrediction'
 import { supabase } from '@/lib/supabaseClient'
+import TeamWithFlag from '@/components/TeamWithFlag'
 import type { MatchWithTeams } from '@/lib/types'
 
 type AdminMatchResultRowProps = {
   match: MatchWithTeams
   onSaved?: () => void
+}
+
+function getStatusLabel(status: string): string {
+  if (status === 'PENDING') return 'Pendiente'
+  if (status === 'FINISHED') return 'Finalizado'
+  return status
+}
+
+function getPhaseLabel(phase: string): string {
+  if (phase === 'GROUP_STAGE') return 'Fase de grupos'
+  return phase
 }
 
 export default function AdminMatchResultRow({
@@ -63,8 +76,10 @@ export default function AdminMatchResultRow({
     onSaved?.()
   }
 
-  const matchDate = new Date(match.match_date)
+  const matchDatePeru = formatMatchDatePeru(match.match_date)
   const isFinished = match.status === 'FINISHED'
+  const statusLabel = getStatusLabel(match.status)
+  const phaseLabel = match.phase ? getPhaseLabel(match.phase) : null
 
   return (
     <li className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
@@ -76,10 +91,10 @@ export default function AdminMatchResultRow({
               : 'bg-amber-100 text-amber-800'
           }`}
         >
-          {match.status}
+          {statusLabel}
         </span>
-        {match.phase && (
-          <span className="text-xs text-emerald-700/70">{match.phase}</span>
+        {phaseLabel && (
+          <span className="text-xs text-emerald-700/70">{phaseLabel}</span>
         )}
         {match.group_name && (
           <span className="text-xs text-emerald-700/70">Grupo {match.group_name}</span>
@@ -87,23 +102,16 @@ export default function AdminMatchResultRow({
       </div>
 
       <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-center text-base font-semibold text-emerald-950 sm:text-left">
-          <span>{match.local_team.name}</span>
-          <span className="mx-2 font-normal text-emerald-600">vs</span>
-          <span>{match.visitor_team.name}</span>
-        </p>
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-base font-semibold text-emerald-950 sm:justify-start">
+          <TeamWithFlag team={match.local_team} />
+          <span className="font-normal text-emerald-600">vs</span>
+          <TeamWithFlag team={match.visitor_team} />
+        </div>
         <time
           dateTime={match.match_date}
           className="text-center text-sm text-emerald-700/70 sm:text-right"
         >
-          {matchDate.toLocaleDateString('es-CO', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {matchDatePeru} (hora Perú)
         </time>
       </div>
 
