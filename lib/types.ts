@@ -54,3 +54,34 @@ export type RankingEntry = {
   exact_scores: number
   result_hits: number
 }
+
+export type PredictionResultType =
+  | 'SCORE_EXACTO'
+  | 'RESULTADO_ACERTADO'
+  | 'NO_ACERTADO'
+  | 'PENDIENTE_RESULTADO'
+
+export type CardPredictionDetail = {
+  card_id: string
+  card_name: string
+  user_id: string
+  card_status: string
+  prediction_id: string
+  match_id: string
+  local_score_predicted: number
+  visitor_score_predicted: number
+  points: number
+  group_name: string | null
+  phase: string
+  match_date: string
+  local_score_real: number | null
+  visitor_score_real: number | null
+  match_status: string
+  local_team_name: string
+  local_team_code: string | null
+  local_team_flag_url: string | null
+  visitor_team_name: string
+  visitor_team_code: string | null
+  visitor_team_flag_url: string | null
+  prediction_result: PredictionResultType | string
+}

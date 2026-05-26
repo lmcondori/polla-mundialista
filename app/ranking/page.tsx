@@ -50,6 +50,10 @@ export default function RankingPage() {
           <h1 className="text-2xl font-bold text-emerald-950 sm:text-3xl">
             Ranking general
           </h1>
+          <p className="mt-2 text-sm text-emerald-800/80">
+            El ranking considera únicamente cartillas habilitadas por la
+            administración.
+          </p>
           <p className="mt-2 text-emerald-800/70">
             Clasificación por puntos totales de cada cartilla.
           </p>
