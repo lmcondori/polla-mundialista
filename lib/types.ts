@@ -1,0 +1,55 @@
+export type Profile = {
+  id: string
+  full_name: string
+  role: string
+}
+
+export type Card = {
+  id: string
+  user_id: string
+  card_name: string
+  created_at?: string
+}
+
+export type Team = {
+  id: string
+  name: string
+  fifa_code?: string
+}
+
+export type Match = {
+  id: string
+  phase: string
+  group_name: string | null
+  local_team_id: string
+  visitor_team_id: string
+  match_date: string
+  local_score_real: number | null
+  visitor_score_real: number | null
+  status: string
+}
+
+export type MatchWithTeams = Match & {
+  local_team: Team
+  visitor_team: Team
+}
+
+export type Prediction = {
+  id: string
+  card_id: string
+  match_id: string
+  local_score_predicted: number
+  visitor_score_predicted: number
+  points: number
+}
+
+export type RankingEntry = {
+  card_id: string
+  card_name: string
+  user_id: string
+  full_name: string
+  total_points: number
+  total_predictions: number
+  exact_scores: number
+  result_hits: number
+}
