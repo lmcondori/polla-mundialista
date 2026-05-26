@@ -2,6 +2,10 @@
 
 import { FormEvent, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import {
+  formatMatchDatePeru,
+  isMatchPredictionClosed,
+} from '@/lib/matchPrediction'
 import type { MatchWithTeams, Prediction } from '@/lib/types'
 
 type MatchPredictionRowProps = {
@@ -28,6 +32,9 @@ export default function MatchPredictionRow({
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
 
+  const isClosed = isMatchPredictionClosed(match.match_date)
+  const matchDatePeru = formatMatchDatePeru(match.match_date)
+
   useEffect(() => {
     setLocalScore(initialPrediction?.local_score_predicted?.toString() ?? '')
     setVisitorScore(
@@ -39,6 +46,10 @@ export default function MatchPredictionRow({
     e.preventDefault()
     setError(null)
     setSaved(false)
+
+    if (isMatchPredictionClosed(match.match_date)) {
+      return
+    }
 
     const local = Number.parseInt(localScore, 10)
     const visitor = Number.parseInt(visitorScore, 10)
@@ -71,33 +82,42 @@ export default function MatchPredictionRow({
     setSaved(true)
   }
 
-  const matchDate = new Date(match.match_date)
-
   return (
     <li className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
-      <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <p className="text-center text-base font-semibold text-emerald-950 sm:text-left">
           <span>{match.local_team.name}</span>
           <span className="mx-2 font-normal text-emerald-600">vs</span>
           <span>{match.visitor_team.name}</span>
         </p>
-        <time
-          dateTime={match.match_date}
-          className="text-center text-sm text-emerald-700/70 sm:text-right"
-        >
-          {matchDate.toLocaleDateString('es-CO', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </time>
+
+        <div className="flex flex-col items-center gap-1 sm:items-end">
+          {isClosed ? (
+            <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+              Pronóstico cerrado
+            </span>
+          ) : (
+            <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+              Abierto hasta {matchDatePeru}
+            </span>
+          )}
+          <time
+            dateTime={match.match_date}
+            className="text-center text-sm text-emerald-700/70 sm:text-right"
+          >
+            Inicio: {matchDatePeru} (hora Perú)
+          </time>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="grid grid-cols-[1fr_auto_1fr_auto] items-end gap-2 sm:grid-cols-[1fr_auto_1fr_auto] sm:gap-3">
+        <div
+          className={`grid items-end gap-2 sm:gap-3 ${
+            isClosed
+              ? 'grid-cols-[1fr_auto_1fr]'
+              : 'grid-cols-[1fr_auto_1fr_auto]'
+          }`}
+        >
           <div>
             <label
               htmlFor={`local-${match.id}`}
@@ -111,12 +131,13 @@ export default function MatchPredictionRow({
               min={0}
               inputMode="numeric"
               value={localScore}
+              disabled={isClosed}
               onChange={(e) => {
                 setLocalScore(e.target.value)
                 setSaved(false)
               }}
-              required
-              className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-center outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+              required={!isClosed}
+              className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-center outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:bg-emerald-50 disabled:text-emerald-900/60"
             />
           </div>
 
@@ -135,22 +156,25 @@ export default function MatchPredictionRow({
               min={0}
               inputMode="numeric"
               value={visitorScore}
+              disabled={isClosed}
               onChange={(e) => {
                 setVisitorScore(e.target.value)
                 setSaved(false)
               }}
-              required
-              className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-center outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+              required={!isClosed}
+              className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-center outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:bg-emerald-50 disabled:text-emerald-900/60"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60 sm:mb-0"
-          >
-            {saving ? '…' : 'Guardar'}
-          </button>
+          {!isClosed && (
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60 sm:mb-0"
+            >
+              {saving ? '…' : 'Guardar'}
+            </button>
+          )}
         </div>
 
         {error && (
@@ -158,7 +182,7 @@ export default function MatchPredictionRow({
             {error}
           </p>
         )}
-        {saved && !error && (
+        {saved && !error && !isClosed && (
           <p role="status" className="text-sm text-emerald-700">
             Pronóstico guardado.
           </p>
