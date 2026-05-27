@@ -6,20 +6,20 @@ import { useParams, useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import PublicCardSummaryStats from '@/components/PublicCardSummaryStats'
 import PublicCardSummaryTable from '@/components/PublicCardSummaryTable'
-import { buildCardSummaryStats } from '@/lib/cardSummary'
 import { sortMatchesByDateAsc } from '@/lib/matchPrediction'
 import { supabase } from '@/lib/supabaseClient'
-import type { CardPredictionDetail } from '@/lib/types'
+import type { CardPredictionDetail, RankingEntry } from '@/lib/types'
+
+const NOT_FOUND_MESSAGE =
+  'No se encontró la cartilla o no está habilitada para participar.'
 
 export default function PublicCardDetailPage() {
   const router = useRouter()
   const params = useParams()
   const cardId = params.id as string
 
+  const [rankingCard, setRankingCard] = useState<RankingEntry | null>(null)
   const [rows, setRows] = useState<CardPredictionDetail[]>([])
-  const [cardName, setCardName] = useState('')
-  const [participantName, setParticipantName] = useState('')
-  const [cardStatus, setCardStatus] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
@@ -34,6 +34,8 @@ export default function PublicCardDetailPage() {
     setLoading(true)
     setError(null)
     setNotFound(false)
+    setRankingCard(null)
+    setRows([])
 
     const {
       data: { session },
@@ -44,40 +46,28 @@ export default function PublicCardDetailPage() {
       return
     }
 
-    const { data: cardData, error: cardError } = await supabase
-      .from('cards')
-      .select('id, card_name, status, user_id')
-      .eq('id', cardId)
+    const { data: rankingData, error: rankingError } = await supabase
+      .from('vw_ranking_cards')
+      .select(
+        'card_id, card_name, user_id, full_name, total_points, total_predictions, exact_scores, result_hits, status'
+      )
+      .eq('card_id', cardId)
       .maybeSingle()
 
-    if (cardError) {
-      setError(cardError.message)
+    if (rankingError) {
+      setError(rankingError.message)
       setLoading(false)
       return
     }
 
-    if (!cardData) {
+    if (!rankingData) {
       setNotFound(true)
       setLoading(false)
       return
     }
 
-    setCardName(cardData.card_name)
-    setCardStatus(cardData.status)
-
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', cardData.user_id)
-      .single()
-
-    setParticipantName(profileData?.full_name ?? 'Participante')
-
-    if (cardData.status !== 'ACTIVE') {
-      setRows([])
-      setLoading(false)
-      return
-    }
+    const card = rankingData as RankingEntry
+    setRankingCard(card)
 
     const { data, error: viewError } = await supabase
       .from('vw_card_prediction_detail')
@@ -134,7 +124,6 @@ export default function PublicCardDetailPage() {
     return () => subscription.unsubscribe()
   }, [loadData, router])
 
-  const stats = useMemo(() => buildCardSummaryStats(rows), [rows])
   const sortedRows = useMemo(() => sortMatchesByDateAsc(rows), [rows])
 
   if (loading) {
@@ -159,18 +148,18 @@ export default function PublicCardDetailPage() {
 
         {notFound ? (
           <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 px-6 py-12 text-center">
-            <p className="text-emerald-800/80">No se encontró la cartilla.</p>
+            <p className="text-emerald-800/80">{NOT_FOUND_MESSAGE}</p>
           </div>
-        ) : (
+        ) : rankingCard ? (
           <>
             <header className="mb-6">
               <h1 className="text-2xl font-bold text-emerald-950 sm:text-3xl">
-                {cardName}
+                {rankingCard.card_name}
               </h1>
               <p className="mt-2 text-emerald-800">
                 Participante:{' '}
                 <span className="font-semibold text-emerald-950">
-                  {participantName}
+                  {rankingCard.full_name}
                 </span>
               </p>
               <p className="mt-2 text-sm text-emerald-800/70">
@@ -188,28 +177,15 @@ export default function PublicCardDetailPage() {
               </p>
             )}
 
-            {cardStatus !== 'ACTIVE' ? (
-              <div
-                role="status"
-                className="rounded-xl border border-amber-200 bg-amber-50 px-6 py-8 text-center"
-              >
-                <p className="text-amber-900">
-                  Esta cartilla no está habilitada para participar.
-                </p>
-              </div>
-            ) : (
-              <>
-                <PublicCardSummaryStats
-                  totalPoints={stats.totalPoints}
-                  exactScores={stats.exactScores}
-                  resultHits={stats.resultHits}
-                  totalPredictions={stats.totalPredictions}
-                />
-                <PublicCardSummaryTable rows={sortedRows} />
-              </>
-            )}
+            <PublicCardSummaryStats
+              totalPoints={rankingCard.total_points ?? 0}
+              exactScores={rankingCard.exact_scores ?? 0}
+              resultHits={rankingCard.result_hits ?? 0}
+              totalPredictions={rankingCard.total_predictions ?? 0}
+            />
+            <PublicCardSummaryTable rows={sortedRows} />
           </>
-        )}
+        ) : null}
       </main>
     </div>
   )

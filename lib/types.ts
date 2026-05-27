@@ -53,6 +53,7 @@ export type RankingEntry = {
   total_predictions: number
   exact_scores: number
   result_hits: number
+  status?: string
 }
 
 export type PredictionResultType =
