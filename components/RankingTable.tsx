@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { RankingEntry } from '@/lib/types'
 
 type RankingTableProps = {
@@ -17,7 +18,7 @@ export default function RankingTable({ entries }: RankingTableProps) {
 
   return (
     <div className="overflow-x-auto rounded-xl border border-emerald-100 bg-white shadow-sm">
-      <table className="w-full min-w-[640px] text-left text-sm">
+      <table className="w-full min-w-[760px] text-left text-sm">
         <thead>
           <tr className="border-b border-emerald-100 bg-emerald-50/80">
             <th className="px-4 py-3 font-semibold text-emerald-900">#</th>
@@ -36,6 +37,9 @@ export default function RankingTable({ entries }: RankingTableProps) {
             </th>
             <th className="px-4 py-3 text-right font-semibold text-emerald-900">
               Pronósticos
+            </th>
+            <th className="px-4 py-3 text-right font-semibold text-emerald-900">
+              Detalle
             </th>
           </tr>
         </thead>
@@ -60,6 +64,14 @@ export default function RankingTable({ entries }: RankingTableProps) {
               </td>
               <td className="px-4 py-3 text-right text-emerald-800">
                 {entry.total_predictions}
+              </td>
+              <td className="px-4 py-3 text-right">
+                <Link
+                  href={`/cards-public/${entry.card_id}`}
+                  className="inline-flex rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-50"
+                >
+                  Ver detalle
+                </Link>
               </td>
             </tr>
           ))}

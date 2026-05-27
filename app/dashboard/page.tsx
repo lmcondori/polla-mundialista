@@ -7,6 +7,7 @@ import type { User } from '@supabase/supabase-js'
 import Navbar from '@/components/Navbar'
 import CardForm from '@/components/CardForm'
 import CardList from '@/components/CardList'
+import { formatMatchDatePeru } from '@/lib/matchPrediction'
 import { supabase } from '@/lib/supabaseClient'
 import type { Card } from '@/lib/types'
 
@@ -21,6 +22,8 @@ export default function DashboardPage() {
   const [cardsLoading, setCardsLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [canCreateCards, setCanCreateCards] = useState(true)
+  const [deadlineLabel, setDeadlineLabel] = useState<string | null>(null)
 
   const loadCards = useCallback(async (userId: string) => {
     setCardsLoading(true)
@@ -49,6 +52,29 @@ export default function DashboardPage() {
     setIsAdmin(data?.role === 'admin')
   }, [])
 
+  const loadCardCreationDeadline = useCallback(async () => {
+    const { data, error: settingsError } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'card_creation_deadline')
+      .single()
+
+    if (settingsError || !data?.value) {
+      setCanCreateCards(true)
+      setDeadlineLabel(null)
+      return
+    }
+
+    const deadline = new Date(data.value)
+    const now = new Date()
+    const allowed = now < deadline
+
+    setCanCreateCards(allowed)
+    setDeadlineLabel(
+      `${formatMatchDatePeru(data.value)} (hora Perú)`
+    )
+  }, [])
+
   useEffect(() => {
     async function init() {
       const {
@@ -61,7 +87,11 @@ export default function DashboardPage() {
       }
 
       setUser(session.user)
-      await Promise.all([loadProfile(session.user.id), loadCards(session.user.id)])
+      await Promise.all([
+        loadProfile(session.user.id),
+        loadCards(session.user.id),
+        loadCardCreationDeadline(),
+      ])
       setAuthLoading(false)
     }
 
@@ -76,7 +106,7 @@ export default function DashboardPage() {
     })
 
     return () => subscription.unsubscribe()
-  }, [router, loadCards, loadProfile])
+  }, [router, loadCards, loadProfile, loadCardCreationDeadline])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -86,7 +116,7 @@ export default function DashboardPage() {
 
   async function handleCreateCard(e: FormEvent) {
     e.preventDefault()
-    if (!user) return
+    if (!user || !canCreateCards) return
 
     const trimmed = cardName.trim()
     if (!trimmed) return
@@ -153,6 +183,12 @@ export default function DashboardPage() {
                 >
                   Administrar cartillas
                 </Link>
+                <Link
+                  href="/admin/settings"
+                  className="inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
+                >
+                  Configuración del sistema
+                </Link>
               </>
             )}
           </div>
@@ -168,12 +204,31 @@ export default function DashboardPage() {
         )}
 
         <section className="mb-8">
-          <CardForm
-            cardName={cardName}
-            onCardNameChange={setCardName}
-            onSubmit={handleCreateCard}
-            loading={creating}
-          />
+          {canCreateCards ? (
+            <>
+              {deadlineLabel && (
+                <p className="mb-3 text-sm text-emerald-800/80">
+                  Puedes crear cartillas hasta:{' '}
+                  <span className="font-medium text-emerald-900">
+                    {deadlineLabel}
+                  </span>
+                </p>
+              )}
+              <CardForm
+                cardName={cardName}
+                onCardNameChange={setCardName}
+                onSubmit={handleCreateCard}
+                loading={creating}
+              />
+            </>
+          ) : (
+            <div
+              role="status"
+              className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900"
+            >
+              La creación de cartillas ya se encuentra cerrada.
+            </div>
+          )}
         </section>
 
         <section>
