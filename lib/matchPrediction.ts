@@ -4,6 +4,11 @@ const MATCH_DATE_PERU_FORMAT = new Intl.DateTimeFormat('es-PE', {
   timeZone: 'America/Lima',
 })
 
+const MATCH_TIME_PERU_FORMAT = new Intl.DateTimeFormat('es-PE', {
+  timeStyle: 'short',
+  timeZone: 'America/Lima',
+})
+
 const PERU_DATE_LABEL_LONG_FORMAT = new Intl.DateTimeFormat('es-PE', {
   weekday: 'long',
   day: '2-digit',
@@ -36,6 +41,14 @@ export function isMatchPredictionClosed(matchDateIso: string): boolean {
 
 export function formatMatchDatePeru(matchDateIso: string): string {
   return MATCH_DATE_PERU_FORMAT.format(new Date(matchDateIso))
+}
+
+export function formatMatchTimePeru(matchDateIso: string): string {
+  return MATCH_TIME_PERU_FORMAT.format(new Date(matchDateIso))
+}
+
+export function getTodayPeruDateKey(): string {
+  return getPeruDateKey(new Date().toISOString())
 }
 
 export function getPeruDateKey(dateIso: string): string {
