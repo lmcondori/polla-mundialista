@@ -11,6 +11,7 @@ import {
   isMatchPredictionClosed,
   sortMatchesByDateAsc,
 } from '@/lib/matchPrediction'
+import { applyRankingOrder, RANKING_ENTRY_SELECT } from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
 import type { MatchWithTeams, RankingEntry } from '@/lib/types'
 
@@ -80,15 +81,9 @@ export default function HomePageContent() {
 
     setTodayMatches(matchesToday)
 
-    const { data: rankingData, error: rankingError } = await supabase
-      .from('vw_ranking_cards')
-      .select(
-        'card_id, card_name, user_id, full_name, total_points, total_predictions, exact_scores, result_hits'
-      )
-      .order('total_points', { ascending: false })
-      .order('exact_scores', { ascending: false })
-      .order('result_hits', { ascending: false })
-      .limit(3)
+    const { data: rankingData, error: rankingError } = await applyRankingOrder(
+      supabase.from('vw_ranking_cards').select(RANKING_ENTRY_SELECT)
+    ).limit(3)
 
     if (rankingError) {
       setError(rankingError.message)

@@ -95,7 +95,7 @@ Imports con alias `@/` (ej. `@/lib/types`).
 | Deadline cartillas | `settings.card_creation_deadline`; formato Perú (`lib/settingsDeadline.ts`) |
 | Vista pública | `vw_ranking_cards` + `vw_card_prediction_detail`; ocultar si `match_date > now` |
 | Admin | `role === 'admin'`; escritura sensible vía RPC |
-| Ranking | Solo cartillas `ACTIVE` (`vw_ranking_cards`) |
+| Ranking | Solo cartillas `ACTIVE` (`vw_ranking_cards`); orden: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc |
 | Puntaje | Exacto = 5 · Resultado = 3 · Fallo = 0 |
 
 ---

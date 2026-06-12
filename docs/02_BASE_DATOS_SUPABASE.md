@@ -118,7 +118,19 @@ Cartillas **ACTIVE** con métricas agregadas para ranking y vista pública.
 | `result_hits` | Cantidad `RESULTADO_ACERTADO` |
 | `status` | Estado de cartilla |
 
-**Uso en frontend:** `/ranking`, `/cards-public/[id]` (cabecera y stats).
+**Orden oficial** (aplicado en consultas del frontend vía `lib/ranking.ts`):
+
+```sql
+ORDER BY
+  total_points DESC,
+  exact_scores DESC,
+  result_hits DESC,
+  card_name ASC
+```
+
+El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits` desc y `card_name` asc.
+
+**Uso en frontend:** `/ranking`, `/` (ranking destacado), `/cards-public/[id]` (cabecera y stats; consulta por `card_id` sin orden de listado).
 
 > No consultar `cards` directamente para ver cartillas ajenas: RLS lo impide.
 

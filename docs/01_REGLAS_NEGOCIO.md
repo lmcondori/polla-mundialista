@@ -53,11 +53,14 @@ El cálculo se realiza en **Supabase** (funciones `calculate_prediction_points`,
 | No acierta resultado | **0** | `NO_ACERTADO` |
 | Partido sin resultado oficial aún | — | `PENDIENTE_RESULTADO` |
 
-### Criterio de desempate en ranking (orden habitual)
+### Orden oficial del ranking
 
-1. `total_points` (descendente)
-2. `exact_scores` (descendente)
-3. `result_hits` (descendente)
+1. Mayor puntaje total (`total_points` descendente)
+2. Mayor cantidad de marcadores exactos (`exact_scores` descendente)
+3. Mayor cantidad de aciertos de resultado (`result_hits` descendente)
+4. Nombre de cartilla en orden alfabético ascendente (`card_name` ascendente)
+
+El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits` desc y `card_name` asc.
 
 ---
 

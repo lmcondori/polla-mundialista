@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import RankingPodium from '@/components/RankingPodium'
 import RankingSummaryCards from '@/components/RankingSummaryCards'
 import RankingTable from '@/components/RankingTable'
+import { applyRankingOrder, RANKING_ENTRY_SELECT } from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
 import type { RankingEntry } from '@/lib/types'
 
@@ -19,14 +20,9 @@ export default function RankingPage() {
       setLoading(true)
       setError(null)
 
-      const { data, error: fetchError } = await supabase
-        .from('vw_ranking_cards')
-        .select(
-          'card_id, card_name, user_id, full_name, total_points, total_predictions, exact_scores, result_hits'
-        )
-        .order('total_points', { ascending: false })
-        .order('exact_scores', { ascending: false })
-        .order('result_hits', { ascending: false })
+      const { data, error: fetchError } = await applyRankingOrder(
+        supabase.from('vw_ranking_cards').select(RANKING_ENTRY_SELECT)
+      )
 
       if (fetchError) {
         setError(fetchError.message)

@@ -134,7 +134,7 @@ sequenceDiagram
 ```mermaid
 flowchart LR
   A[/ranking] --> B[SELECT vw_ranking_cards]
-  B --> C[Ordenar por puntos, exactos, aciertos]
+  B --> C[Ordenar: puntos, exactos, aciertos, nombre cartilla]
   C --> D[Podio top 3]
   C --> E[Tabla completa]
   E --> F[Ver detalle → /cards-public/card_id]
@@ -146,6 +146,7 @@ flowchart LR
 
 - Solo cartillas `ACTIVE` (la vista ya las filtra).
 - Cartillas `INACTIVE` no aparecen.
+- Orden oficial: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc (helper `lib/ranking.ts`).
 
 ---
 
@@ -225,5 +226,6 @@ flowchart TD
 | `lib/matches.ts` | Carga de partidos con equipos |
 | `lib/cardSummary.ts` | Etiquetas y stats de resumen |
 | `lib/settingsDeadline.ts` | Parse/build deadline Perú |
+| `lib/ranking.ts` | Orden oficial de `vw_ranking_cards` |
 | `components/Navbar.tsx` | Navegación global |
 | `components/TeamFlag.tsx` | Banderas |
