@@ -6,23 +6,32 @@ Scripts SQL versionados para aplicar en el proyecto Supabase (SQL Editor o CLI).
 
 | Archivo | Fase | Descripción |
 |---------|------|-------------|
-| `001_knockout_stage_schema.sql` | Fase 1 | Columnas de etapa eliminatoria (sin seed, sin RPC, sin vistas) |
+| `001_knockout_stage_schema.sql` | Fase 1 | Columnas de etapa eliminatoria |
+| `002_seed_knockout_matches.sql` | Fase 2 | Seed partidos 73–104 (16avos + plantillas) |
+| `003_knockout_functions_and_views.sql` | Fase 3 | Funciones, RPC eliminatoria, vista ranking llaves |
 
 ## Fase 1 — `001_knockout_stage_schema.sql`
 
-**Aplica en Supabase:** ejecutar el script completo en el SQL Editor.
+**Agrega:** `cards.stage`, `predictions.predicted_winner_team_id`, columnas de llave en `matches`.
+
+**No modifica:** cartillas existentes, funciones RPC de grupos, `vw_ranking_cards`, pantallas.
+
+## Fase 2 — `002_seed_knockout_matches.sql`
+
+**Agrega:** partidos 73–104 con equipos reales (16avos) y plantillas (octavos a final).
+
+**Requiere:** migración 001 aplicada y equipos en `public.teams`.
+
+## Fase 3 — `003_knockout_functions_and_views.sql`
 
 **Agrega:**
 
-- `cards.stage` (`GROUP_STAGE` \| `KNOCKOUT_STAGE`, default `GROUP_STAGE`)
-- `predictions.predicted_winner_team_id` (bigint → `teams.id`)
-- `matches.match_number`, fuentes de llave, `winner_team_id`, `loser_team_id`
+- `calculate_prediction_points_v2` — puntaje grupos o eliminatoria según `matches.phase`
+- `recalculate_knockout_match_points` — recálculo interno llaves
+- `propagate_knockout_teams` — propagación ganador/perdedor a slots plantilla
+- `save_knockout_match_result_and_recalculate` — RPC admin eliminatoria
+- `vw_ranking_cards_knockout` — ranking cartillas `KNOCKOUT_STAGE`
 
-**No modifica:** cartillas existentes, funciones RPC, vistas de ranking, pantallas.
+**No modifica:** `calculate_prediction_points`, `recalculate_match_points`, `save_match_result_and_recalculate`, `vw_ranking_cards`.
 
-**Pendiente (fases siguientes, requieren aprobación):**
-
-- Fase 2: funciones RPC y cálculo de puntos eliminatoria
-- Fase 3: seed partidos 73–104
-- Fase 4: vistas `vw_ranking_cards_knockout`
-- Fase 5+: pantallas admin, pronósticos y ranking llaves
+**Pendiente (Fase 4+):** pantallas admin llaves, pronósticos, ranking `/ranking/knockout`.

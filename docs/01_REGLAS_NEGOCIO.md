@@ -19,7 +19,7 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 - Cartillas de llaves: `cards.stage = 'KNOCKOUT_STAGE'` (cartillas nuevas; no migrar las existentes).
 - **No** se reutiliza la misma cartilla de grupos para llaves.
 - Partidos de eliminatoria en `matches` con fases: `ROUND_OF_32`, `ROUND_OF_16`, `QUARTER_FINAL`, `SEMI_FINAL`, `THIRD_PLACE`, `FINAL`.
-- Ranking futuro separado: `vw_ranking_cards_knockout` (Fase posterior — aún no implementada).
+- Ranking separado: `vw_ranking_cards_knockout` (Fase 3 — SQL en repo; pantallas pendientes).
 
 > La fase de grupos permanece operativa sin cambios de reglas ni de pantallas hasta completar cada fase aprobada.
 
@@ -36,7 +36,7 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 | Cartillas existentes | Permanecen `GROUP_STAGE`; **no migrar** a llaves |
 | Cartillas de llaves | Nuevas cartillas con `stage = 'KNOCKOUT_STAGE'` (futuro, Fase UI) |
 | Ranking grupos | Solo `ACTIVE` + `GROUP_STAGE` en `vw_ranking_cards` |
-| Ranking llaves | Futuro: `ACTIVE` + `KNOCKOUT_STAGE` en `vw_ranking_cards_knockout` |
+| Ranking llaves | `ACTIVE` + `KNOCKOUT_STAGE` en `vw_ranking_cards_knockout` |
 
 ---
 
@@ -50,7 +50,7 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 | Unicidad | Un pronóstico por par `(card_id, match_id)` |
 | Puntos iniciales | Al guardar, `points = 0`; cálculo en servidor al cargar resultado |
 
-**Eliminatoria (documentado — implementación Fase 2+):** además del marcador, `predicted_winner_team_id` (bigint → `teams.id`).
+**Eliminatoria:** además del marcador, `predicted_winner_team_id` (bigint → `teams.id`). Pantallas de pronóstico: Fase posterior.
 
 ---
 
@@ -64,7 +64,10 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 
 ## Sistema de puntaje
 
-El cálculo se realiza en **Supabase** (funciones `calculate_prediction_points`, `recalculate_match_points`, invocadas vía RPC). El frontend **no** recalcula puntos.
+El cálculo se realiza en **Supabase** (funciones de BD invocadas vía RPC). El frontend **no** recalcula puntos.
+
+- **Grupos:** `calculate_prediction_points`, `recalculate_match_points`, RPC `save_match_result_and_recalculate`.
+- **Llaves:** `calculate_prediction_points_v2`, `recalculate_knockout_match_points`, RPC `save_knockout_match_result_and_recalculate`.
 
 | Resultado | Puntos | Código en vista |
 |-----------|--------|-----------------|
@@ -82,15 +85,15 @@ El cálculo se realiza en **Supabase** (funciones `calculate_prediction_points`,
 
 El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits` desc y `card_name` asc.
 
-### Puntaje eliminatoria (documentado — RPC pendiente Fase 2)
+### Puntaje eliminatoria
 
-| Resultado | Puntos |
-|-----------|--------|
-| Marcador exacto | **5** |
-| Acierta equipo clasificado (sin marcador exacto) | **3** |
-| No acierta | **0** |
+| Resultado | Puntos | Notas |
+|-----------|--------|-------|
+| Marcador exacto | **5** | Prioridad sobre acierto de clasificado |
+| Acierta equipo clasificado (sin marcador exacto) | **3** | `predicted_winner_team_id = winner_team_id` |
+| No acierta | **0** | Incluye partido sin `winner_team_id` registrado |
 
-El participante pronostica marcador y `predicted_winner_team_id`. El admin registra marcador real y `winner_team_id`.
+El participante pronostica marcador y `predicted_winner_team_id`. El admin registra marcador real, `winner_team_id` y `loser_team_id` (calculado) vía RPC `save_knockout_match_result_and_recalculate`. Puede haber empate en marcador; siempre debe existir un equipo clasificado.
 
 ---
 
@@ -99,8 +102,10 @@ El participante pronostica marcador y `predicted_winner_team_id`. El admin regis
 | Regla | Detalle |
 |-------|---------|
 | Quién carga | Solo usuarios con `profiles.role = 'admin'` |
-| Cómo | RPC `save_match_result_and_recalculate` desde `/admin/results` |
-| Efecto | Actualiza `local_score_real`, `visitor_score_real`, recalcula `predictions.points` del partido |
+| Cómo (grupos) | RPC `save_match_result_and_recalculate` desde `/admin/results` |
+| Cómo (llaves) | RPC `save_knockout_match_result_and_recalculate` (pantalla admin pendiente) |
+| Efecto grupos | Actualiza marcador real, recalcula `predictions.points` |
+| Efecto llaves | Actualiza marcador, `winner_team_id`, `loser_team_id`, recalcula puntos y propaga equipos a partidos plantilla |
 | Estado | `status` del partido (p. ej. `PENDING`, `FINISHED`) |
 
 ---

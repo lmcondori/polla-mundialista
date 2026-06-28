@@ -21,15 +21,15 @@ Descripción de flujos por actor y ruta. Refleja el comportamiento **implementad
 | `/admin/settings` | Admin | Configuración global |
 | `/knockout-preview` | Público | Proyección informativa de grupos/llaves (sin pronósticos) |
 
-### Etapa eliminatoria (planificado — Fase 1 solo esquema BD)
+### Etapa eliminatoria (backend Fase 3 — pantallas pendientes)
 
-| Ruta / flujo futuro | Actor | Descripción |
-|---------------------|-------|-------------|
-| `/ranking/knockout` (propuesta) | Público | Ranking cartillas `KNOCKOUT_STAGE` |
-| Cartilla `KNOCKOUT_STAGE` | Autenticado | Cartilla nueva separada; marcador + equipo clasificado |
-| Admin resultados llaves | Admin | Marcador + `winner_team_id`; propagación |
+| Ruta / flujo | Actor | Descripción | Estado |
+|--------------|-------|-------------|--------|
+| `/ranking/knockout` (propuesta) | Público | Ranking cartillas `KNOCKOUT_STAGE` vía `vw_ranking_cards_knockout` | ⏳ Pantalla |
+| Cartilla `KNOCKOUT_STAGE` | Autenticado | Cartilla nueva separada; marcador + equipo clasificado | ⏳ Pantalla |
+| Admin resultados llaves | Admin | RPC `save_knockout_match_result_and_recalculate` | ✅ Backend |
 
-**Sin cambios en Fase 1:** `/cards/[id]`, `/admin/results`, `/ranking` (fase de grupos intacta).
+**Sin cambios en pantallas actuales:** `/cards/[id]`, `/admin/results`, `/ranking` (fase de grupos intacta).
 
 ---
 
@@ -140,6 +140,33 @@ sequenceDiagram
 
 ---
 
+## Flujo 4b — Carga de resultados eliminatoria (admin — backend, sin pantalla)
+
+```mermaid
+sequenceDiagram
+  participant A as Admin
+  participant RPC as save_knockout_match_result_and_recalculate
+  participant DB as PostgreSQL
+
+  A->>RPC: p_match_number, marcador, p_winner_team_id
+  RPC->>DB: Valida admin y equipos definidos
+  RPC->>DB: Actualiza matches (marcador, winner, loser, FINISHED)
+  RPC->>DB: recalculate_knockout_match_points
+  RPC->>DB: propagate_knockout_teams
+  DB-->>A: OK
+```
+
+**Estado:** RPC y funciones en `003_knockout_functions_and_views.sql`. Pantalla admin pendiente (Fase posterior).
+
+**Reglas:**
+
+- Solo `profiles.role = 'admin'`.
+- Partido debe tener `local_team_id` y `visitor_team_id` definidos.
+- `p_winner_team_id` debe ser uno de los dos equipos del partido.
+- Propaga ganador/perdedor a partidos plantilla (`local_source_*` / `visitor_source_*`).
+
+---
+
 ## Flujo 5 — Ranking general
 
 ```mermaid
@@ -238,6 +265,6 @@ flowchart TD
 | `lib/cardSummary.ts` | Etiquetas y stats de resumen |
 | `lib/settingsDeadline.ts` | Parse/build deadline Perú |
 | `lib/ranking.ts` | Orden oficial de `vw_ranking_cards` |
-| `supabase/migrations/` | Migraciones SQL (Fase 1: esquema eliminatoria) |
+| `supabase/migrations/` | Migraciones SQL (Fases 1–3 etapa eliminatoria) |
 | `components/Navbar.tsx` | Navegación global |
 | `components/TeamFlag.tsx` | Banderas |

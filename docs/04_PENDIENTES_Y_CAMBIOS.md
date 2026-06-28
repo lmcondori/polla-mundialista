@@ -10,7 +10,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 |------|--------|-------|
 | **Etapa eliminatoria** | 🚧 En desarrollo por fases | Rama `feature/etapa-llaves`. Fase 1 = esquema BD. **No romper fase de grupos.** |
 | Cambio de reglas de puntaje grupos | 🚫 Prohibido | 5 / 3 / 0 en funciones de BD para `GROUP_STAGE` |
-| Puntaje eliminatoria | 📋 Documentado | 5 / 3 / 0 con clasificado; RPC Fase 2 |
+| Puntaje eliminatoria | ✅ En repo | 5 / 3 / 0 con clasificado; `003_knockout_functions_and_views.sql` |
 | Renombrar columnas/tablas | 🚫 Prohibido | Ver `01_REGLAS_NEGOCIO.md` y `02_BASE_DATOS_SUPABASE.md` |
 | Recalcular puntos en frontend | 🚫 Prohibido | Usar RPC existentes |
 
@@ -45,18 +45,17 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 
 | Fase | Alcance | Estado |
 |------|---------|--------|
-| **1** | Esquema BD (`cards.stage`, columnas `matches`/`predictions`) + docs | ✅ En repo (aplicar SQL en Supabase) |
-| **2** | Funciones RPC, puntaje eliminatoria, propagación ganador | ⏳ Pendiente aprobación |
-| **3** | Seed partidos 73–104 | ⏳ Pendiente aprobación |
-| **4** | Vista `vw_ranking_cards_knockout` | ⏳ Pendiente aprobación |
-| **5+** | Pantallas: cartillas llaves, pronósticos, admin, ranking | ⏳ Pendiente aprobación |
+| **1** | Esquema BD (`cards.stage`, columnas `matches`/`predictions`) + docs | ✅ En repo |
+| **2** | Seed partidos 73–104 | ✅ En repo (`002_seed_knockout_matches.sql`) |
+| **3** | Funciones RPC, puntaje eliminatoria, propagación, `vw_ranking_cards_knockout` | ✅ En repo (`003_knockout_functions_and_views.sql`) |
+| **4+** | Pantallas: cartillas llaves, pronósticos, admin resultados llaves, ranking llaves | ⏳ Pendiente |
 
 **Decisiones oficiales:**
 
 - Cartillas grupos y llaves **separadas** (`GROUP_STAGE` vs `KNOCKOUT_STAGE`).
 - Cartillas existentes **no se migran**.
 - IDs de dominio (`teams`, `matches`, `cards`, `predictions`) = **`bigint`**; FKs a equipos = **`bigint`**.
-- Ranking grupos (`vw_ranking_cards`) **sin modificar** hasta Fase 4.
+- Ranking grupos (`vw_ranking_cards`) **sin modificar**.
 
 ---
 
@@ -104,6 +103,8 @@ Antes de implementar cualquier feature o fix:
 | 2026-05 | Creación de carpeta `docs/` y documentación interna inicial |
 | 2026-05 | Vista pública `/cards-public/[id]` con ocultamiento de pronósticos futuros |
 | 2026-06 | Fase 1 etapa eliminatoria: migración `001_knockout_stage_schema.sql`, docs actualizados |
+| 2026-06 | Fase 2 seed eliminatoria: `002_seed_knockout_matches.sql` |
+| 2026-06 | Fase 3 backend llaves: `003_knockout_functions_and_views.sql`, docs actualizados |
 
 ---
 

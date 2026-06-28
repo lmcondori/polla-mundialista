@@ -77,7 +77,7 @@ Partidos del fixture (fase de grupos y eliminatoria).
 | `winner_team_id` | bigint | Ganador real (eliminatoria); FK → `teams` |
 | `loser_team_id` | bigint | Perdedor real (eliminatoria); FK → `teams` |
 
-> Columnas de eliminatoria agregadas en Fase 1 (`supabase/migrations/001_knockout_stage_schema.sql`). Seed de partidos 73–104: Fase posterior (pendiente aprobación).
+> Columnas de eliminatoria: Fase 1 (`001_knockout_stage_schema.sql`). Seed partidos 73–104: Fase 2 (`002_seed_knockout_matches.sql`).
 
 ---
 
@@ -172,11 +172,38 @@ El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits`
 
 ---
 
-### `vw_ranking_cards_knockout` (planificado — Fase posterior)
+### `vw_ranking_cards_knockout`
 
-Ranking de cartillas `ACTIVE` con `stage = 'KNOCKOUT_STAGE'`, solo partidos de eliminatoria.
+Cartillas **ACTIVE** con `stage = 'KNOCKOUT_STAGE'` y métricas agregadas solo de partidos con `phase <> 'GROUP_STAGE'`.
 
-**Estado:** no creada en Fase 1. Mismo criterio de orden que `vw_ranking_cards`.
+**Migración:** `supabase/migrations/003_knockout_functions_and_views.sql`
+
+| Columna | Descripción |
+|---------|-------------|
+| `card_id` | ID de cartilla |
+| `card_name` | Nombre |
+| `user_id` | Dueño |
+| `full_name` | Nombre del participante |
+| `total_points` | Suma de puntos (eliminatoria) |
+| `total_predictions` | Cantidad de pronósticos en partidos eliminatoria |
+| `exact_scores` | Cantidad con `points = 5` |
+| `result_hits` | Cantidad con `points = 3` |
+| `status` | Estado de cartilla (`ACTIVE`) |
+| `stage` | Etapa (`KNOCKOUT_STAGE`) |
+
+**Orden oficial** (mismo criterio que grupos; aplicar en frontend):
+
+```sql
+ORDER BY
+  total_points DESC,
+  exact_scores DESC,
+  result_hits DESC,
+  card_name ASC
+```
+
+**Uso previsto en frontend:** `/ranking/knockout` (Fase posterior — pantalla no implementada).
+
+> `vw_ranking_cards` (grupos) **no se modifica** en esta fase.
 
 ---
 
@@ -203,7 +230,8 @@ Campos principales (ver `lib/types.ts` → `CardPredictionDetail`):
 
 | RPC | Parámetros | Descripción |
 |-----|------------|-------------|
-| `save_match_result_and_recalculate` | `p_match_id`, `p_local_score_real`, `p_visitor_score_real` | Guarda resultado y dispara recálculo de puntos |
+| `save_match_result_and_recalculate` | `p_match_id`, `p_local_score_real`, `p_visitor_score_real` | Admin: resultado fase de grupos + recálculo |
+| `save_knockout_match_result_and_recalculate` | `p_match_number`, `p_local_score_real`, `p_visitor_score_real`, `p_winner_team_id` | Admin: resultado eliminatoria + recálculo + propagación |
 | `admin_update_card_status` | `p_card_id`, `p_status` | Cambia `ACTIVE` / `INACTIVE` |
 | `admin_update_setting` | `p_key`, `p_value` | Actualiza `settings` (admin) |
 
@@ -211,12 +239,13 @@ Campos principales (ver `lib/types.ts` → `CardPredictionDetail`):
 
 | Función | Rol |
 |---------|-----|
-| `calculate_prediction_points` | Calcula puntos de un pronóstico dado resultado real |
-| `recalculate_match_points` | Recalcula puntos de todos los pronósticos de un partido |
+| `calculate_prediction_points` | Puntaje fase de grupos (sin cambios) |
+| `recalculate_match_points` | Recálculo grupos (sin cambios) |
+| `calculate_prediction_points_v2` | Puntaje unificado: detecta `GROUP_STAGE` vs eliminatoria |
+| `recalculate_knockout_match_points` | Recálculo de pronósticos de un partido eliminatoria |
+| `propagate_knockout_teams` | Propaga `winner_team_id`/`loser_team_id` a slots plantilla |
 
-El frontend **no** invoca directamente las funciones internas; usa `save_match_result_and_recalculate`.
-
-**Fase 1:** sin cambios en firmas ni cuerpos de RPC/funciones. Eliminatoria (marcador + ganador + propagación): Fase 2.
+El frontend **no** invoca directamente las funciones internas; usa `save_match_result_and_recalculate` (grupos) o `save_knockout_match_result_and_recalculate` (llaves).
 
 ---
 
@@ -229,7 +258,8 @@ El frontend **no** invoca directamente las funciones internas; usa `save_match_r
 | `predictions` | Upsert en sus cartillas | — | RLS por ownership |
 | `matches` | Lectura | Lectura + RPC resultado | — |
 | `settings` | Lectura | Escritura vía RPC | No `update` directo en UI admin |
-| `vw_ranking_cards` | Lectura | Lectura | Ranking y vista pública |
+| `vw_ranking_cards` | Lectura | Lectura | Ranking fase de grupos |
+| `vw_ranking_cards_knockout` | Lectura | Lectura | Ranking eliminatoria |
 | `vw_card_prediction_detail` | Lectura | Lectura | Resúmenes |
 
 ---

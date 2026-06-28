@@ -41,7 +41,7 @@ Este archivo define el **contrato de trabajo** para cualquier agente o desarroll
 
 **Fase de grupos (implementada):** cartillas `GROUP_STAGE`, pronósticos de marcador, ranking en `vw_ranking_cards`.
 
-**Etapa eliminatoria (en desarrollo por fases):** cartillas separadas `KNOCKOUT_STAGE`, pronósticos de marcador + equipo clasificado, ranking separado (futuro `vw_ranking_cards_knockout`). No comparte cartilla con fase de grupos.
+**Etapa eliminatoria (en desarrollo por fases):** cartillas separadas `KNOCKOUT_STAGE`, pronósticos de marcador + equipo clasificado, ranking en `vw_ranking_cards_knockout`. Backend Fase 3 en repo; pantallas pendientes.
 
 - **UI:** español.
 - **Zona horaria:** Perú (`America/Lima`).
@@ -92,15 +92,16 @@ Imports con alias `@/` (ej. `@/lib/types`).
 |------|-------|
 | Cierre de pronósticos | `now >= match_date` → sin edición (`lib/matchPrediction.ts`) |
 | Guardado pronósticos | `upsert` a `predictions`, `points: 0` inicial |
-| Cálculo de puntos | Solo en BD: `calculate_prediction_points`, `recalculate_match_points`, RPC `save_match_result_and_recalculate` |
+| Cálculo de puntos grupos | Solo en BD: `calculate_prediction_points`, `recalculate_match_points`, RPC `save_match_result_and_recalculate` |
+| Cálculo de puntos llaves | `calculate_prediction_points_v2`, `recalculate_knockout_match_points`, RPC `save_knockout_match_result_and_recalculate` |
 | Registro | Perfil vía trigger `handle_new_user`; no insert manual en `profiles` |
 | Deadline cartillas | `settings.card_creation_deadline`; formato Perú (`lib/settingsDeadline.ts`) |
 | Vista pública | `vw_ranking_cards` + `vw_card_prediction_detail`; ocultar si `match_date > now` |
 | Admin | `role === 'admin'`; escritura sensible vía RPC |
 | Ranking grupos | Solo cartillas `ACTIVE` con `stage = 'GROUP_STAGE'` (`vw_ranking_cards`); orden: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc |
-| Ranking llaves | Futuro: cartillas `ACTIVE` con `stage = 'KNOCKOUT_STAGE'` (`vw_ranking_cards_knockout` — Fase posterior) |
+| Ranking llaves | Cartillas `ACTIVE` con `stage = 'KNOCKOUT_STAGE'` (`vw_ranking_cards_knockout`); mismo orden que grupos |
 | Puntaje grupos | Exacto = 5 · Resultado = 3 · Fallo = 0 |
-| Puntaje llaves | Exacto = 5 · Clasificado = 3 · Fallo = 0 (RPC pendiente Fase 2) |
+| Puntaje llaves | Exacto = 5 · Clasificado = 3 · Fallo = 0 (`save_knockout_match_result_and_recalculate`) |
 
 ---
 
@@ -112,20 +113,22 @@ Imports con alias `@/` (ej. `@/lib/types`).
 
 ### Vistas
 
-- `vw_ranking_cards` — ranking y cabecera vista pública
+- `vw_ranking_cards` — ranking fase de grupos y cabecera vista pública
+- `vw_ranking_cards_knockout` — ranking eliminatoria
 - `vw_card_prediction_detail` — detalle de pronósticos
 
 ### RPC (frontend)
 
 | RPC | Uso |
 |-----|-----|
-| `save_match_result_and_recalculate` | Admin: resultado + recálculo |
+| `save_match_result_and_recalculate` | Admin: resultado grupos + recálculo |
+| `save_knockout_match_result_and_recalculate` | Admin: resultado llaves + recálculo + propagación |
 | `admin_update_card_status` | Admin: `ACTIVE` / `INACTIVE` |
 | `admin_update_setting` | Admin: configuración global |
 
 ### RPC / funciones internas (solo BD)
 
-`calculate_prediction_points` · `recalculate_match_points`
+`calculate_prediction_points` · `recalculate_match_points` · `calculate_prediction_points_v2` · `recalculate_knockout_match_points` · `propagate_knockout_teams`
 
 ### Tipos de ID (confirmado en Supabase)
 
@@ -151,7 +154,7 @@ FKs a equipos usan **`bigint`**, no `uuid`.
 | `matches` | `local_source_type`, `visitor_source_type` | `text` (`WINNER` \| `LOSER` \| NULL) |
 | `matches` | `winner_team_id`, `loser_team_id` | `bigint` → `teams.id` |
 
-Migración: `supabase/migrations/001_knockout_stage_schema.sql`
+Migraciones: `001_knockout_stage_schema.sql` · `002_seed_knockout_matches.sql` · `003_knockout_functions_and_views.sql`
 
 ### Columnas — usar siempre nombres reales
 
@@ -211,7 +214,7 @@ Lista completa: [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS
 ## Pendientes y fuera de alcance
 
 - Pendientes técnicos: tests, middleware auth, README — ver [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS.md).
-- **Etapa eliminatoria:** en desarrollo por fases (`feature/etapa-llaves`). Fase 1 = esquema BD. Pantallas, RPC y ranking llaves en fases posteriores (requieren aprobación).
+- **Etapa eliminatoria:** Fases 1–3 en repo (`feature/etapa-llaves`). Pantallas en Fase 4+.
 
 ---
 
