@@ -4,6 +4,23 @@ Esquema lógico y convenciones de acceso desde el frontend. La fuente de verdad 
 
 ---
 
+## Tipos de identificadores (confirmado en Supabase)
+
+| Recurso | Tipo PostgreSQL | Notas |
+|---------|-----------------|-------|
+| `teams.id` | `bigint` | PK |
+| `matches.id` | `bigint` | PK |
+| `cards.id` | `bigint` | PK |
+| `predictions.id` | `bigint` | PK |
+| `matches.local_team_id`, `visitor_team_id` | `bigint` | FK → `teams.id` |
+| `profiles.id` | `uuid` | Coincide con `auth.users.id` |
+
+**Regla:** referencias a equipos (`predicted_winner_team_id`, `winner_team_id`, `loser_team_id`) usan **`bigint`**, no `uuid`.
+
+En TypeScript/JSON los `bigint` pueden serializarse como `number` o `string`; el frontend los trata como identificadores opacos.
+
+---
+
 ## Tablas
 
 ### `profiles`
@@ -29,28 +46,38 @@ Equipos del torneo.
 
 | Columna | Tipo lógico | Descripción |
 |---------|-------------|-------------|
-| `id` | UUID | PK |
+| `id` | bigint | PK |
 | `name` | text | Nombre del equipo |
 | `fifa_code` | text | Código FIFA (opcional) |
 | `flag_url` | text | URL de bandera para UI |
+| `group_name` | text | Grupo A–L (nullable) |
 
 ---
 
 ### `matches`
 
-Partidos del fixture (fase de grupos).
+Partidos del fixture (fase de grupos y eliminatoria).
 
 | Columna | Tipo lógico | Descripción |
 |---------|-------------|-------------|
-| `id` | UUID | PK |
-| `phase` | text | Ej. `GROUP_STAGE` |
-| `group_name` | text | Grupo A–L (nullable fuera de grupos) |
-| `local_team_id` | UUID | FK → `teams` |
-| `visitor_team_id` | UUID | FK → `teams` |
+| `id` | bigint | PK |
+| `phase` | text | `GROUP_STAGE` \| `ROUND_OF_32` \| `ROUND_OF_16` \| `QUARTER_FINAL` \| `SEMI_FINAL` \| `THIRD_PLACE` \| `FINAL` |
+| `group_name` | text | Grupo A–L (nullable; solo fase de grupos) |
+| `local_team_id` | bigint | FK → `teams` |
+| `visitor_team_id` | bigint | FK → `teams` |
 | `match_date` | timestamptz | Inicio del partido (hora Perú en origen) |
 | `local_score_real` | int | Goles local (null si pendiente) |
 | `visitor_score_real` | int | Goles visitante (null si pendiente) |
 | `status` | text | Ej. `PENDING`, `FINISHED` |
+| `match_number` | integer | Número oficial del partido (ej. 73–104) |
+| `local_source_match_number` | integer | Partido fuente para slot local (plantillas) |
+| `visitor_source_match_number` | integer | Partido fuente para slot visitante |
+| `local_source_type` | text | `WINNER` \| `LOSER` \| NULL |
+| `visitor_source_type` | text | `WINNER` \| `LOSER` \| NULL |
+| `winner_team_id` | bigint | Ganador real (eliminatoria); FK → `teams` |
+| `loser_team_id` | bigint | Perdedor real (eliminatoria); FK → `teams` |
+
+> Columnas de eliminatoria agregadas en Fase 1 (`supabase/migrations/001_knockout_stage_schema.sql`). Seed de partidos 73–104: Fase posterior (pendiente aprobación).
 
 ---
 
@@ -60,13 +87,19 @@ Cartillas de pronósticos por usuario.
 
 | Columna | Tipo lógico | Descripción |
 |---------|-------------|-------------|
-| `id` | UUID | PK |
-| `user_id` | UUID | FK → `profiles` / `auth.users` |
+| `id` | bigint | PK |
+| `user_id` | uuid | FK → `profiles` / `auth.users` |
 | `card_name` | text | Nombre visible |
 | `status` | text | `ACTIVE` \| `INACTIVE` |
+| `stage` | text | `GROUP_STAGE` (default) \| `KNOCKOUT_STAGE` |
 | `admin_note` | text | Nota interna del admin (nullable) |
 | `created_at` | timestamptz | Creación |
 | `updated_at` | timestamptz | Última actualización |
+
+**Notas etapa:**
+
+- Cartillas existentes: `stage = 'GROUP_STAGE'` (default de migración Fase 1).
+- Cartillas de llaves: nuevas filas con `stage = 'KNOCKOUT_STAGE'` (sin migrar existentes).
 
 ---
 
@@ -76,11 +109,12 @@ Pronósticos por cartilla y partido.
 
 | Columna | Tipo lógico | Descripción |
 |---------|-------------|-------------|
-| `id` | UUID | PK |
-| `card_id` | UUID | FK → `cards` |
-| `match_id` | UUID | FK → `matches` |
+| `id` | bigint | PK |
+| `card_id` | bigint | FK → `cards` |
+| `match_id` | bigint | FK → `matches` |
 | `local_score_predicted` | int | Goles local pronosticados |
 | `visitor_score_predicted` | int | Goles visitante pronosticados |
+| `predicted_winner_team_id` | bigint | Equipo clasificado pronosticado (eliminatoria); FK → `teams` |
 | `points` | int | Puntos calculados (0 hasta resultado) |
 
 **Restricción de unicidad:** `(card_id, match_id)` — upsert con `onConflict: 'card_id,match_id'`.
@@ -104,7 +138,9 @@ Configuración global clave-valor.
 
 ### `vw_ranking_cards`
 
-Cartillas **ACTIVE** con métricas agregadas para ranking y vista pública.
+Cartillas **ACTIVE** con `stage = 'GROUP_STAGE'` y métricas agregadas de fase de grupos.
+
+> **Fase 1:** la vista existente en Supabase **no se modifica** en esta fase. En Fase posterior se acotará explícitamente a partidos `GROUP_STAGE` y cartillas `GROUP_STAGE`.
 
 | Columna | Descripción |
 |---------|-------------|
@@ -133,6 +169,14 @@ El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits`
 **Uso en frontend:** `/ranking`, `/` (ranking destacado), `/cards-public/[id]` (cabecera y stats; consulta por `card_id` sin orden de listado).
 
 > No consultar `cards` directamente para ver cartillas ajenas: RLS lo impide.
+
+---
+
+### `vw_ranking_cards_knockout` (planificado — Fase posterior)
+
+Ranking de cartillas `ACTIVE` con `stage = 'KNOCKOUT_STAGE'`, solo partidos de eliminatoria.
+
+**Estado:** no creada en Fase 1. Mismo criterio de orden que `vw_ranking_cards`.
 
 ---
 
@@ -171,6 +215,8 @@ Campos principales (ver `lib/types.ts` → `CardPredictionDetail`):
 | `recalculate_match_points` | Recalcula puntos de todos los pronósticos de un partido |
 
 El frontend **no** invoca directamente las funciones internas; usa `save_match_result_and_recalculate`.
+
+**Fase 1:** sin cambios en firmas ni cuerpos de RPC/funciones. Eliminatoria (marcador + ganador + propagación): Fase 2.
 
 ---
 

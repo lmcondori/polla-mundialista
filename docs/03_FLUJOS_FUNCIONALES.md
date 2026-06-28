@@ -19,6 +19,17 @@ Descripción de flujos por actor y ruta. Refleja el comportamiento **implementad
 | `/admin/cards` | Admin | Gestión de cartillas |
 | `/admin/results` | Admin | Carga de resultados |
 | `/admin/settings` | Admin | Configuración global |
+| `/knockout-preview` | Público | Proyección informativa de grupos/llaves (sin pronósticos) |
+
+### Etapa eliminatoria (planificado — Fase 1 solo esquema BD)
+
+| Ruta / flujo futuro | Actor | Descripción |
+|---------------------|-------|-------------|
+| `/ranking/knockout` (propuesta) | Público | Ranking cartillas `KNOCKOUT_STAGE` |
+| Cartilla `KNOCKOUT_STAGE` | Autenticado | Cartilla nueva separada; marcador + equipo clasificado |
+| Admin resultados llaves | Admin | Marcador + `winner_team_id`; propagación |
+
+**Sin cambios en Fase 1:** `/cards/[id]`, `/admin/results`, `/ranking` (fase de grupos intacta).
 
 ---
 
@@ -227,5 +238,6 @@ flowchart TD
 | `lib/cardSummary.ts` | Etiquetas y stats de resumen |
 | `lib/settingsDeadline.ts` | Parse/build deadline Perú |
 | `lib/ranking.ts` | Orden oficial de `vw_ranking_cards` |
+| `supabase/migrations/` | Migraciones SQL (Fase 1: esquema eliminatoria) |
 | `components/Navbar.tsx` | Navegación global |
 | `components/TeamFlag.tsx` | Banderas |

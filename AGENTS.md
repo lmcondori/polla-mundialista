@@ -19,7 +19,7 @@ Este archivo define el **contrato de trabajo** para cualquier agente o desarroll
 5. **Cambiar solo los archivos necesarios** — Sin refactors colaterales ni “mejoras” no solicitadas.
 6. **Ejecutar `npm run build` al final** — Obligatorio antes de dar por terminado cualquier cambio de código.
 7. **Si hay error de TypeScript, corregirlo antes de finalizar** — No entregar cambios que no compilen.
-8. **No implementar la segunda etapa por llaves** — Solo fase de grupos está en alcance. Octavos en adelante requieren solicitud explícita.
+8. **Segunda etapa por llaves** — En desarrollo por fases en rama `feature/etapa-llaves`. La fase de grupos **no debe romperse**. Ver [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS.md).
 
 ---
 
@@ -37,9 +37,11 @@ Este archivo define el **contrato de trabajo** para cualquier agente o desarroll
 
 ## Resumen del proyecto
 
-**Polla Mundialista 2026** — aplicación web recreativa para pronósticos de la **fase de grupos** del Mundial 2026.
+**Polla Mundialista 2026** — aplicación web recreativa para pronósticos del Mundial 2026.
 
-Los participantes crean cartillas, pronostican antes del inicio de cada partido, acumulan puntos según resultados reales (cargados por admin) y consultan ranking y vista pública de cartillas ajenas (sin revelar pronósticos futuros).
+**Fase de grupos (implementada):** cartillas `GROUP_STAGE`, pronósticos de marcador, ranking en `vw_ranking_cards`.
+
+**Etapa eliminatoria (en desarrollo por fases):** cartillas separadas `KNOCKOUT_STAGE`, pronósticos de marcador + equipo clasificado, ranking separado (futuro `vw_ranking_cards_knockout`). No comparte cartilla con fase de grupos.
 
 - **UI:** español.
 - **Zona horaria:** Perú (`America/Lima`).
@@ -95,8 +97,10 @@ Imports con alias `@/` (ej. `@/lib/types`).
 | Deadline cartillas | `settings.card_creation_deadline`; formato Perú (`lib/settingsDeadline.ts`) |
 | Vista pública | `vw_ranking_cards` + `vw_card_prediction_detail`; ocultar si `match_date > now` |
 | Admin | `role === 'admin'`; escritura sensible vía RPC |
-| Ranking | Solo cartillas `ACTIVE` (`vw_ranking_cards`); orden: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc |
-| Puntaje | Exacto = 5 · Resultado = 3 · Fallo = 0 |
+| Ranking grupos | Solo cartillas `ACTIVE` con `stage = 'GROUP_STAGE'` (`vw_ranking_cards`); orden: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc |
+| Ranking llaves | Futuro: cartillas `ACTIVE` con `stage = 'KNOCKOUT_STAGE'` (`vw_ranking_cards_knockout` — Fase posterior) |
+| Puntaje grupos | Exacto = 5 · Resultado = 3 · Fallo = 0 |
+| Puntaje llaves | Exacto = 5 · Clasificado = 3 · Fallo = 0 (RPC pendiente Fase 2) |
 
 ---
 
@@ -122,6 +126,32 @@ Imports con alias `@/` (ej. `@/lib/types`).
 ### RPC / funciones internas (solo BD)
 
 `calculate_prediction_points` · `recalculate_match_points`
+
+### Tipos de ID (confirmado en Supabase)
+
+| Tabla / columna | Tipo |
+|-----------------|------|
+| `teams.id` | `bigint` |
+| `matches.id` | `bigint` |
+| `cards.id` | `bigint` |
+| `predictions.id` | `bigint` |
+| `matches.local_team_id`, `visitor_team_id` | `bigint` |
+| `profiles.id` | `uuid` (Auth) |
+
+FKs a equipos usan **`bigint`**, no `uuid`.
+
+### Columnas nuevas — etapa eliminatoria (Fase 1)
+
+| Tabla | Columna | Tipo |
+|-------|---------|------|
+| `cards` | `stage` | `text` NOT NULL DEFAULT `'GROUP_STAGE'` |
+| `predictions` | `predicted_winner_team_id` | `bigint` → `teams.id` |
+| `matches` | `match_number` | `integer` |
+| `matches` | `local_source_match_number`, `visitor_source_match_number` | `integer` |
+| `matches` | `local_source_type`, `visitor_source_type` | `text` (`WINNER` \| `LOSER` \| NULL) |
+| `matches` | `winner_team_id`, `loser_team_id` | `bigint` → `teams.id` |
+
+Migración: `supabase/migrations/001_knockout_stage_schema.sql`
 
 ### Columnas — usar siempre nombres reales
 
@@ -181,7 +211,7 @@ Lista completa: [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS
 ## Pendientes y fuera de alcance
 
 - Pendientes técnicos: tests, middleware auth, README — ver [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS.md).
-- **Segunda etapa por llaves: NO implementar** sin solicitud explícita.
+- **Etapa eliminatoria:** en desarrollo por fases (`feature/etapa-llaves`). Fase 1 = esquema BD. Pantallas, RPC y ranking llaves en fases posteriores (requieren aprobación).
 
 ---
 

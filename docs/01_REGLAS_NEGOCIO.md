@@ -6,9 +6,22 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 
 ## Alcance del torneo
 
-- Solo **fase de grupos** del Mundial 2026.
-- El fixture de grupos está cargado en `matches` (`phase = 'GROUP_STAGE'`, `group_name` A–L).
-- **No implementar** la segunda etapa por llaves (octavos, cuartos, semifinal, final) salvo solicitud explícita.
+### Fase de grupos (implementada — no romper)
+
+- Fixture en `matches` con `phase = 'GROUP_STAGE'`, `group_name` A–L.
+- Cartillas con `cards.stage = 'GROUP_STAGE'` (valor por defecto; todas las cartillas existentes).
+- Ranking en `vw_ranking_cards` (solo etapa de grupos).
+- Puntaje: exacto 5 · acierta ganador/empate 3 · fallo 0.
+
+### Etapa eliminatoria (en desarrollo por fases)
+
+- Segunda etapa **separada** de la fase de grupos.
+- Cartillas de llaves: `cards.stage = 'KNOCKOUT_STAGE'` (cartillas nuevas; no migrar las existentes).
+- **No** se reutiliza la misma cartilla de grupos para llaves.
+- Partidos de eliminatoria en `matches` con fases: `ROUND_OF_32`, `ROUND_OF_16`, `QUARTER_FINAL`, `SEMI_FINAL`, `THIRD_PLACE`, `FINAL`.
+- Ranking futuro separado: `vw_ranking_cards_knockout` (Fase posterior — aún no implementada).
+
+> La fase de grupos permanece operativa sin cambios de reglas ni de pantallas hasta completar cada fase aprobada.
 
 ---
 
@@ -16,11 +29,14 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 
 | Regla | Detalle |
 |-------|---------|
-| Creación | Cualquier participante autenticado puede crear cartillas **antes** de `card_creation_deadline` |
+| Creación | Participante autenticado, antes de `card_creation_deadline` |
 | Deadline | Configurable por admin en `settings` (`key = card_creation_deadline`) |
-| Estados | `ACTIVE` — habilitada para participar; `INACTIVE` — inhabilitada por admin |
-| Ranking | Solo cartillas `ACTIVE` aparecen en `vw_ranking_cards` y en el ranking general |
-| Inactivas | Cartillas `INACTIVE` no participan en ranking ni en la vista pública habilitada |
+| Estados | `ACTIVE` / `INACTIVE` |
+| **Etapa (`stage`)** | `GROUP_STAGE` (fase de grupos, default) \| `KNOCKOUT_STAGE` (eliminatoria) |
+| Cartillas existentes | Permanecen `GROUP_STAGE`; **no migrar** a llaves |
+| Cartillas de llaves | Nuevas cartillas con `stage = 'KNOCKOUT_STAGE'` (futuro, Fase UI) |
+| Ranking grupos | Solo `ACTIVE` + `GROUP_STAGE` en `vw_ranking_cards` |
+| Ranking llaves | Futuro: `ACTIVE` + `KNOCKOUT_STAGE` en `vw_ranking_cards_knockout` |
 
 ---
 
@@ -32,7 +48,11 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 | Cuándo editar | Mientras `now < match_date` (inicio del partido) |
 | Cierre | Al llegar o superar `match_date`, el pronóstico queda cerrado (solo lectura en UI) |
 | Unicidad | Un pronóstico por par `(card_id, match_id)` |
-| Puntos iniciales | Al guardar pronóstico, `points = 0`; el cálculo real ocurre en servidor al cargar resultado |
+| Puntos iniciales | Al guardar, `points = 0`; cálculo en servidor al cargar resultado |
+
+**Eliminatoria (documentado — implementación Fase 2+):** además del marcador, `predicted_winner_team_id` (bigint → `teams.id`).
+
+---
 
 ### Privacidad entre participantes
 
@@ -61,6 +81,16 @@ El cálculo se realiza en **Supabase** (funciones `calculate_prediction_points`,
 4. Nombre de cartilla en orden alfabético ascendente (`card_name` ascendente)
 
 El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits` desc y `card_name` asc.
+
+### Puntaje eliminatoria (documentado — RPC pendiente Fase 2)
+
+| Resultado | Puntos |
+|-----------|--------|
+| Marcador exacto | **5** |
+| Acierta equipo clasificado (sin marcador exacto) | **3** |
+| No acierta | **0** |
+
+El participante pronostica marcador y `predicted_winner_team_id`. El admin registra marcador real y `winner_team_id`.
 
 ---
 

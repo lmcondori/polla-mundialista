@@ -8,8 +8,9 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 
 | Tema | Estado | Notas |
 |------|--------|-------|
-| **Segunda etapa por llaves** | 🚫 Fuera de alcance | Octavos, cuartos, semifinal y final fueron analizados pero **no deben implementarse** salvo solicitud explícita del responsable |
-| Cambio de reglas de puntaje | 🚫 Requiere autorización | 5 / 3 / 0 puntos están en funciones de BD |
+| **Etapa eliminatoria** | 🚧 En desarrollo por fases | Rama `feature/etapa-llaves`. Fase 1 = esquema BD. **No romper fase de grupos.** |
+| Cambio de reglas de puntaje grupos | 🚫 Prohibido | 5 / 3 / 0 en funciones de BD para `GROUP_STAGE` |
+| Puntaje eliminatoria | 📋 Documentado | 5 / 3 / 0 con clasificado; RPC Fase 2 |
 | Renombrar columnas/tablas | 🚫 Prohibido | Ver `01_REGLAS_NEGOCIO.md` y `02_BASE_DATOS_SUPABASE.md` |
 | Recalcular puntos en frontend | 🚫 Prohibido | Usar RPC existentes |
 
@@ -36,6 +37,26 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 - [x] Banderas de equipos (`teams.flag_url`)
 - [x] Fixture de fase de grupos cargado
 - [x] Vista pública controlada de cartillas ajenas (`/cards-public/[id]`)
+- [x] Proyección informativa `/knockout-preview` (sin pronósticos)
+
+---
+
+## Etapa eliminatoria — plan por fases
+
+| Fase | Alcance | Estado |
+|------|---------|--------|
+| **1** | Esquema BD (`cards.stage`, columnas `matches`/`predictions`) + docs | ✅ En repo (aplicar SQL en Supabase) |
+| **2** | Funciones RPC, puntaje eliminatoria, propagación ganador | ⏳ Pendiente aprobación |
+| **3** | Seed partidos 73–104 | ⏳ Pendiente aprobación |
+| **4** | Vista `vw_ranking_cards_knockout` | ⏳ Pendiente aprobación |
+| **5+** | Pantallas: cartillas llaves, pronósticos, admin, ranking | ⏳ Pendiente aprobación |
+
+**Decisiones oficiales:**
+
+- Cartillas grupos y llaves **separadas** (`GROUP_STAGE` vs `KNOCKOUT_STAGE`).
+- Cartillas existentes **no se migran**.
+- IDs de dominio (`teams`, `matches`, `cards`, `predictions`) = **`bigint`**; FKs a equipos = **`bigint`**.
+- Ranking grupos (`vw_ranking_cards`) **sin modificar** hasta Fase 4.
 
 ---
 
@@ -49,7 +70,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 | Vista pública cartilla INACTIVE | Baja | Hoy `vw_ranking_cards` solo expone ACTIVE; mensaje específico para INACTIVE requiere otra fuente/RLS |
 | Protección server-side | Baja | Evaluar Server Components / Route Handlers si se endurece seguridad |
 | Confirmación email registro | Baja | Depende de configuración Supabase Auth |
-| Etiquetas UI fases eliminatorias | 🚫 Bloqueado | No aplicar hasta autorizar segunda etapa |
+| Etiquetas UI fases eliminatorias | 🚧 En curso | Pantallas en fases 5+; Fase 1 solo esquema |
 
 ---
 
@@ -58,7 +79,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 | Tema | Detalle |
 |------|---------|
 | Auth en cliente | Cada página verifica sesión con `getSession()`; no hay `middleware.ts` central |
-| Tipos `Card` en frontend | No incluye `status` en `lib/types.ts` base; admin usa tipo local extendido |
+| Tipos en `lib/types.ts` | IDs como `string` en TS; BD usa `bigint` para dominio |
 | Ranking móvil | Tabla con scroll horizontal; sin vista tarjeta dedicada en `RankingTable` |
 
 ---
@@ -82,7 +103,7 @@ Antes de implementar cualquier feature o fix:
 |-------|--------|
 | 2026-05 | Creación de carpeta `docs/` y documentación interna inicial |
 | 2026-05 | Vista pública `/cards-public/[id]` con ocultamiento de pronósticos futuros |
-| 2026-05 | `AGENTS.md` ampliado con reglas estrictas para agentes |
+| 2026-06 | Fase 1 etapa eliminatoria: migración `001_knockout_stage_schema.sql`, docs actualizados |
 
 ---
 
@@ -93,7 +114,7 @@ Estas ideas **no** están aprobadas para desarrollo:
 - Exportar ranking a PDF/Excel
 - Notificaciones push o email de cierre de pronósticos
 - Múltiples deadlines por fase
-- Segunda etapa por llaves del Mundial
+- Segunda etapa por llaves del Mundial — **en desarrollo por fases** (ver tabla arriba)
 - Modo oscuro
 
 Cualquier ítem de esta lista requiere definición de negocio y autorización antes de codificar.

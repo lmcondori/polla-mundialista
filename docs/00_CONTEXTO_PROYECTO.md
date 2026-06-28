@@ -6,7 +6,9 @@
 
 Los participantes crean cartillas, pronostican resultados de partidos antes de que inicien, acumulan puntos según resultados reales cargados por un administrador y compiten en un ranking general informal.
 
-> **Alcance actual:** solo fase de grupos (`GROUP_STAGE`). La segunda etapa por llaves fue analizada pero **no forma parte del alcance implementado ni autorizado** sin solicitud explícita.
+> **Alcance implementado:** fase de grupos (`GROUP_STAGE`) operativa en producción.
+>
+> **En desarrollo (rama `feature/etapa-llaves`):** etapa eliminatoria como segunda fase **separada** (cartillas `KNOCKOUT_STAGE`, ranking propio). Fase 1 = solo esquema de BD; pantallas y RPC sin cambios aún.
 
 ---
 
