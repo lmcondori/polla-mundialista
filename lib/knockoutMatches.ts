@@ -26,6 +26,8 @@ const KNOCKOUT_MATCHES_SELECT = `
   visitor_source_match_number,
   local_source_type,
   visitor_source_type,
+  winner_team_id,
+  loser_team_id,
   local_team:teams!matches_local_team_id_fkey (
     id,
     name,
@@ -70,6 +72,8 @@ function normalizeKnockoutRow(row: SupabaseKnockoutRow): KnockoutMatchWithTeams 
     visitor_source_match_number: row.visitor_source_match_number,
     local_source_type: row.local_source_type,
     visitor_source_type: row.visitor_source_type,
+    winner_team_id: row.winner_team_id,
+    loser_team_id: row.loser_team_id,
     local_team: normalizeTeamRelation(row.local_team),
     visitor_team: normalizeTeamRelation(row.visitor_team),
   }

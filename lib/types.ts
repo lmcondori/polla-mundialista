@@ -64,6 +64,8 @@ export type KnockoutMatchWithTeams = {
   visitor_source_match_number: number | null
   local_source_type: KnockoutSourceType | null
   visitor_source_type: KnockoutSourceType | null
+  winner_team_id: string | null
+  loser_team_id: string | null
   local_team: Team | null
   visitor_team: Team | null
 }

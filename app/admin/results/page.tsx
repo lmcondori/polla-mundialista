@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import AdminKnockoutResultsSection from '@/components/AdminKnockoutResultsSection'
 import AdminMatchResultRow from '@/components/AdminMatchResultRow'
 import Navbar from '@/components/Navbar'
 import { fetchMatchesWithTeams } from '@/lib/matches'
@@ -10,6 +11,7 @@ import { supabase } from '@/lib/supabaseClient'
 import type { MatchWithTeams } from '@/lib/types'
 
 type AccessState = 'checking' | 'denied' | 'allowed'
+type StageView = 'GROUP_STAGE' | 'KNOCKOUT_STAGE'
 type StatusFilter = 'ALL' | 'PENDING' | 'FINISHED'
 type DateFilter = 'ALL' | 'TODAY' | 'CUSTOM'
 
@@ -53,6 +55,7 @@ function getPeruDateLabel(dateIso: string): string {
 export default function AdminResultsPage() {
   const router = useRouter()
   const [accessState, setAccessState] = useState<AccessState>('checking')
+  const [stageView, setStageView] = useState<StageView>('GROUP_STAGE')
   const [matches, setMatches] = useState<MatchWithTeams[]>([])
   const [matchesLoading, setMatchesLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -208,7 +211,12 @@ export default function AdminResultsPage() {
     setSearchTerm('')
   }
 
-  if (accessState === 'checking' || (accessState === 'allowed' && matchesLoading)) {
+  if (
+    accessState === 'checking' ||
+    (accessState === 'allowed' &&
+      stageView === 'GROUP_STAGE' &&
+      matchesLoading)
+  ) {
     return (
       <div className="flex min-h-full items-center justify-center bg-emerald-50">
         <p className="text-emerald-800">Cargando…</p>
@@ -256,11 +264,41 @@ export default function AdminResultsPage() {
             Administrar resultados
           </h1>
           <p className="mt-2 text-emerald-800/70">
-            Registra el marcador real de cada partido. Al guardar se actualiza el
-            partido y se recalculan los puntos de los pronósticos.
+            {stageView === 'GROUP_STAGE'
+              ? 'Registra el marcador real de cada partido de fase de grupos. Al guardar se actualiza el partido y se recalculan los puntos de los pronósticos.'
+              : 'Registra marcador y equipo clasificado de eliminatoria directa. Al guardar se recalculan puntos y se propagan equipos a partidos siguientes.'}
           </p>
         </header>
 
+        <div className="mb-6 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setStageView('GROUP_STAGE')}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              stageView === 'GROUP_STAGE'
+                ? 'bg-emerald-600 text-white'
+                : 'border border-emerald-200 text-emerald-800 hover:bg-emerald-50'
+            }`}
+          >
+            Fase de grupos
+          </button>
+          <button
+            type="button"
+            onClick={() => setStageView('KNOCKOUT_STAGE')}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              stageView === 'KNOCKOUT_STAGE'
+                ? 'bg-emerald-600 text-white'
+                : 'border border-emerald-200 text-emerald-800 hover:bg-emerald-50'
+            }`}
+          >
+            Llaves
+          </button>
+        </div>
+
+        {stageView === 'KNOCKOUT_STAGE' ? (
+          <AdminKnockoutResultsSection />
+        ) : (
+          <>
         {error && (
           <p
             role="alert"
@@ -436,6 +474,8 @@ export default function AdminResultsPage() {
               )
             })}
           </div>
+        )}
+          </>
         )}
       </main>
     </div>
