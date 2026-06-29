@@ -6,12 +6,7 @@ import Navbar from '@/components/Navbar'
 import RankingPodium from '@/components/RankingPodium'
 import RankingSummaryCards from '@/components/RankingSummaryCards'
 import RankingTable from '@/components/RankingTable'
-import {
-  applyRankingOrder,
-  RANKING_ENTRY_SELECT,
-  RANKING_VIEW_BY_STAGE,
-  type RankingStage,
-} from '@/lib/ranking'
+import { fetchRankingForStage, type RankingStage } from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
 import type { RankingEntry } from '@/lib/types'
 
@@ -48,9 +43,9 @@ export default function RankingPage() {
       setLoading(true)
       setError(null)
 
-      const viewName = RANKING_VIEW_BY_STAGE[activeStage]
-      const { data, error: fetchError } = await applyRankingOrder(
-        supabase.from(viewName).select(RANKING_ENTRY_SELECT)
+      const { data, error: fetchError } = await fetchRankingForStage(
+        supabase,
+        activeStage
       )
 
       if (fetchError) {

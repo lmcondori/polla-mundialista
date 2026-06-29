@@ -8,7 +8,7 @@ type PodiumPlace = 1 | 2 | 3
 
 type PodiumSlot = {
   place: PodiumPlace
-  entry: RankingEntry
+  entry: RankingEntry | undefined
 }
 
 const PLACE_CONFIG: Record<
@@ -51,6 +51,9 @@ const PLACE_CONFIG: Record<
 function buildPodiumSlots(entries: RankingEntry[]): PodiumSlot[] {
   const top = entries.slice(0, 3)
 
+  if (top.length === 0) {
+    return []
+  }
   if (top.length === 1) {
     return [{ place: 1, entry: top[0] }]
   }
@@ -68,6 +71,8 @@ function buildPodiumSlots(entries: RankingEntry[]): PodiumSlot[] {
 }
 
 function PodiumCard({ place, entry }: PodiumSlot) {
+  if (!entry) return null
+
   const config = PLACE_CONFIG[place]
   const isFirst = place === 1
 
@@ -127,9 +132,6 @@ function PodiumCard({ place, entry }: PodiumSlot) {
 
 export default function RankingPodium({ entries }: RankingPodiumProps) {
   const slots = buildPodiumSlots(entries)
-
-  if (slots.length === 0) return null
-
   const isSolo = slots.length === 1
   const isDuo = slots.length === 2
 
@@ -139,7 +141,11 @@ export default function RankingPodium({ entries }: RankingPodiumProps) {
         Podio
       </h2>
 
-      {isSolo ? (
+      {entries.length === 0 ? (
+        <p className="text-center text-sm text-emerald-800/70">
+          Aún no hay cartillas en este ranking.
+        </p>
+      ) : isSolo ? (
         <div className="mx-auto max-w-xs">
           <PodiumCard {...slots[0]} />
         </div>
