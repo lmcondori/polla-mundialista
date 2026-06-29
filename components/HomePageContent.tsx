@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import HomeTodayMatchCard from '@/components/HomeTodayMatchCard'
 import Navbar from '@/components/Navbar'
-import { fetchMatchesWithTeams } from '@/lib/matches'
+import { fetchHomeTodayMatches, type HomeTodayMatch } from '@/lib/homeTodayMatches'
 import {
   getPeruDateKey,
   getTodayPeruDateKey,
@@ -13,7 +13,7 @@ import {
 } from '@/lib/matchPrediction'
 import { applyRankingOrder, RANKING_ENTRY_SELECT } from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
-import type { MatchWithTeams, RankingEntry } from '@/lib/types'
+import type { RankingEntry } from '@/lib/types'
 
 type PendingSummary = {
   todayMatches: number
@@ -22,10 +22,10 @@ type PendingSummary = {
   activeCards: number
 }
 
-const MAX_TODAY_MATCHES = 4
+const GROUP_STAGE_PHASE = 'GROUP_STAGE'
 
 function computePendingSummary(
-  todayMatches: MatchWithTeams[],
+  todayMatches: HomeTodayMatch[],
   activeCardIds: string[],
   predictedPairs: Set<string>
 ): PendingSummary {
@@ -52,7 +52,7 @@ function computePendingSummary(
 }
 
 export default function HomePageContent() {
-  const [todayMatches, setTodayMatches] = useState<MatchWithTeams[]>([])
+  const [todayMatches, setTodayMatches] = useState<HomeTodayMatch[]>([])
   const [topRanking, setTopRanking] = useState<RankingEntry[]>([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [pendingSummary, setPendingSummary] = useState<PendingSummary | null>(
@@ -67,7 +67,7 @@ export default function HomePageContent() {
 
     const todayKey = getTodayPeruDateKey()
 
-    const { data: matches, error: matchesError } = await fetchMatchesWithTeams()
+    const { data: matches, error: matchesError } = await fetchHomeTodayMatches()
 
     if (matchesError) {
       setError(matchesError)
@@ -75,9 +75,9 @@ export default function HomePageContent() {
       return
     }
 
-    const matchesToday = sortMatchesByDateAsc(matches)
-      .filter((match) => getPeruDateKey(match.match_date) === todayKey)
-      .slice(0, MAX_TODAY_MATCHES)
+    const matchesToday = sortMatchesByDateAsc(matches).filter(
+      (match) => getPeruDateKey(match.match_date) === todayKey
+    )
 
     setTodayMatches(matchesToday)
 
@@ -111,7 +111,11 @@ export default function HomePageContent() {
       } else {
         const activeCardIds = (cardsData ?? []).map((card) => card.id)
         const openTodayIds = matchesToday
-          .filter((match) => !isMatchPredictionClosed(match.match_date))
+          .filter(
+            (match) =>
+              match.phase === GROUP_STAGE_PHASE &&
+              !isMatchPredictionClosed(match.match_date)
+          )
           .map((match) => match.id)
 
         let predictedPairs = new Set<string>()

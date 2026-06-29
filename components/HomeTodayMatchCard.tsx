@@ -1,27 +1,84 @@
 import TeamFlag from '@/components/TeamFlag'
+import { getHomeTodayMatchPhaseLabel, type HomeTodayMatch } from '@/lib/homeTodayMatches'
 import { formatMatchTimePeru } from '@/lib/matchPrediction'
-import type { MatchWithTeams } from '@/lib/types'
 
 type HomeTodayMatchCardProps = {
-  match: MatchWithTeams
+  match: HomeTodayMatch
 }
 
-function isMatchFinished(match: MatchWithTeams): boolean {
+function isMatchFinished(match: HomeTodayMatch): boolean {
   return (
     match.status === 'FINISHED' ||
     (match.local_score_real !== null && match.visitor_score_real !== null)
   )
 }
 
+function TeamSide({
+  label,
+  flagUrl,
+  align,
+}: {
+  label: string
+  flagUrl: string | null
+  align: 'left' | 'right'
+}) {
+  const isPlaceholder =
+    label.startsWith('Ganador ') ||
+    label.startsWith('Perdedor ') ||
+    label === 'Pendiente de definir equipos'
+
+  return (
+    <div
+      className={`flex min-w-0 flex-1 items-center gap-2 ${
+        align === 'right' ? 'justify-end' : 'justify-start'
+      }`}
+    >
+      {align === 'right' ? (
+        <>
+          <span
+            className={`truncate text-sm font-semibold sm:text-base ${
+              isPlaceholder
+                ? 'italic text-emerald-800/70'
+                : 'text-emerald-950'
+            } ${align === 'right' ? 'text-right' : ''}`}
+          >
+            {label}
+          </span>
+          {flagUrl ? <TeamFlag team={{ name: label, flag_url: flagUrl }} /> : null}
+        </>
+      ) : (
+        <>
+          {flagUrl ? <TeamFlag team={{ name: label, flag_url: flagUrl }} /> : null}
+          <span
+            className={`truncate text-sm font-semibold sm:text-base ${
+              isPlaceholder
+                ? 'italic text-emerald-800/70'
+                : 'text-emerald-950'
+            }`}
+          >
+            {label}
+          </span>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function HomeTodayMatchCard({ match }: HomeTodayMatchCardProps) {
   const finished = isMatchFinished(match)
+  const phaseLabel = getHomeTodayMatchPhaseLabel(match)
 
   return (
     <article className="flex flex-col rounded-xl border border-emerald-100 bg-white p-4 shadow-sm transition hover:shadow-md">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        {match.group_name && (
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {match.match_number !== null && (
+          <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-emerald-100">
+            Partido {match.match_number}
+          </span>
+        )}
+        {phaseLabel && (
           <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-            Grupo {match.group_name}
+            {phaseLabel}
           </span>
         )}
         <span
@@ -36,12 +93,11 @@ export default function HomeTodayMatchCard({ match }: HomeTodayMatchCardProps) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          <span className="truncate text-right text-sm font-semibold text-emerald-950 sm:text-base">
-            {match.local_team.name}
-          </span>
-          <TeamFlag team={match.local_team} />
-        </div>
+        <TeamSide
+          label={match.local_label}
+          flagUrl={match.local_flag_url}
+          align="right"
+        />
 
         <div className="flex shrink-0 flex-col items-center px-2">
           {finished ? (
@@ -63,12 +119,11 @@ export default function HomeTodayMatchCard({ match }: HomeTodayMatchCardProps) {
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <TeamFlag team={match.visitor_team} />
-          <span className="truncate text-sm font-semibold text-emerald-950 sm:text-base">
-            {match.visitor_team.name}
-          </span>
-        </div>
+        <TeamSide
+          label={match.visitor_label}
+          flagUrl={match.visitor_flag_url}
+          align="left"
+        />
       </div>
     </article>
   )
