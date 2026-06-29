@@ -3,6 +3,8 @@ import { KNOCKOUT_ROUND_LABELS } from '@/lib/knockoutFixture'
 import type { KnockoutRound } from '@/lib/knockoutPreviewTypes'
 import type { KnockoutMatchWithTeams, Team } from '@/lib/types'
 
+export const KNOCKOUT_TEAMS_PENDING_LABEL = 'Pendiente de definir equipos'
+
 const KNOCKOUT_PHASE_ORDER: KnockoutRound[] = [
   'ROUND_OF_32',
   'ROUND_OF_16',
@@ -112,17 +114,32 @@ export function isKnockoutSideDefined(
 export function formatKnockoutSidePlaceholder(
   match: KnockoutMatchWithTeams,
   side: KnockoutMatchSide
-): string | null {
+): string {
   if (side === 'local') {
-    return formatSourceSide(
-      match.local_source_match_number,
-      match.local_source_type
+    return (
+      formatSourceSide(
+        match.local_source_match_number,
+        match.local_source_type
+      ) ?? KNOCKOUT_TEAMS_PENDING_LABEL
     )
   }
-  return formatSourceSide(
-    match.visitor_source_match_number,
-    match.visitor_source_type
+  return (
+    formatSourceSide(
+      match.visitor_source_match_number,
+      match.visitor_source_type
+    ) ?? KNOCKOUT_TEAMS_PENDING_LABEL
   )
+}
+
+export function getKnockoutSideLabel(
+  match: KnockoutMatchWithTeams,
+  side: KnockoutMatchSide
+): { label: string; flag_url: string | null } {
+  const team = getKnockoutSideTeam(match, side)
+  if (isKnockoutSideDefined(match, side) && team) {
+    return { label: team.name, flag_url: team.flag_url ?? null }
+  }
+  return { label: formatKnockoutSidePlaceholder(match, side), flag_url: null }
 }
 
 export function formatKnockoutMatchOrigin(match: KnockoutMatchWithTeams): string | null {

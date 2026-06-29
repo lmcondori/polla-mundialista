@@ -8,7 +8,7 @@ Los participantes crean cartillas, pronostican resultados de partidos antes de q
 
 > **Alcance implementado:** fase de grupos (`GROUP_STAGE`) operativa en producción.
 >
-> **En desarrollo (rama `feature/etapa-llaves`):** etapa eliminatoria como segunda fase **separada** (cartillas `KNOCKOUT_STAGE`, ranking propio). Fase 1 = solo esquema de BD; pantallas y RPC sin cambios aún.
+> **Etapa eliminatoria:** segunda fase **separada** (`KNOCKOUT_STAGE`, ranking propio, pestañas en `/ranking`). Implementada en rama `feature/etapa-llaves`.
 
 ---
 

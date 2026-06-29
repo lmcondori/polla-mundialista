@@ -8,7 +8,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 
 | Tema | Estado | Notas |
 |------|--------|-------|
-| **Etapa eliminatoria** | 🚧 En desarrollo por fases | Rama `feature/etapa-llaves`. Fase 1 = esquema BD. **No romper fase de grupos.** |
+| **Etapa eliminatoria** | ✅ Implementada | Rama `feature/etapa-llaves` (Fases 1–8). **No romper fase de grupos.** |
 | Cambio de reglas de puntaje grupos | 🚫 Prohibido | 5 / 3 / 0 en funciones de BD para `GROUP_STAGE` |
 | Puntaje eliminatoria | ✅ En repo | 5 / 3 / 0 con clasificado; `003_knockout_functions_and_views.sql` |
 | Renombrar columnas/tablas | 🚫 Prohibido | Ver `01_REGLAS_NEGOCIO.md` y `02_BASE_DATOS_SUPABASE.md` |
@@ -39,6 +39,8 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 - [x] Vista pública controlada de cartillas ajenas (`/cards-public/[id]`)
 - [x] Ranking de llaves (pestaña en `/ranking`)
 - [x] Resumen de cartilla de llaves (`/cards/[id]/summary`)
+- [x] Proyección informativa `/knockout-preview` (sin pronósticos)
+- [x] Revisión final etapa llaves (Fase 8)
 
 ---
 
@@ -49,7 +51,8 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 | **1** | Esquema BD (`cards.stage`, columnas `matches`/`predictions`) + docs | ✅ En repo |
 | **2** | Seed partidos 73–104 | ✅ En repo (`002_seed_knockout_matches.sql`) |
 | **3** | Funciones RPC, puntaje eliminatoria, propagación, `vw_ranking_cards_knockout` | ✅ En repo (`003_knockout_functions_and_views.sql`) |
-| **4+** | Pantallas: cartillas llaves, pronósticos, admin resultados llaves, ranking llaves, resumen llaves | ✅ Fases 4–7 en repo |
+| **4–7** | Pantallas: cartillas llaves, pronósticos, admin resultados llaves, ranking llaves, resumen llaves | ✅ En repo |
+| **8** | Revisión final, navegación, textos y aislamiento grupos/llaves | ✅ En repo |
 
 **Decisiones oficiales:**
 
@@ -67,10 +70,10 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 | Pruebas automatizadas | Media | No hay suite unitaria ni e2e en el repo |
 | Middleware de auth | Media | Protección actual es client-side por página |
 | README del proyecto | Baja | `README.md` sigue siendo plantilla de create-next-app |
-| Vista pública cartilla INACTIVE | Baja | Hoy `vw_ranking_cards` solo expone ACTIVE; mensaje específico para INACTIVE requiere otra fuente/RLS |
+| Vista pública cartillas de llaves | Media | `/cards-public/[id]` solo soporta `GROUP_STAGE`; ranking de llaves no enlaza detalle público |
 | Protección server-side | Baja | Evaluar Server Components / Route Handlers si se endurece seguridad |
 | Confirmación email registro | Baja | Depende de configuración Supabase Auth |
-| Etiquetas UI fases eliminatorias | ✅ Completado | Fases 4–7: dashboard, pronósticos, admin, ranking y resumen llaves |
+| Etiquetas UI fases eliminatorias | ✅ Completado | Fases 4–8: dashboard, pronósticos, admin, ranking, resumen y revisión final |
 
 ---
 
@@ -105,7 +108,7 @@ Antes de implementar cualquier feature o fix:
 | 2026-05 | Vista pública `/cards-public/[id]` con ocultamiento de pronósticos futuros |
 | 2026-06 | Fase 1 etapa eliminatoria: migración `001_knockout_stage_schema.sql`, docs actualizados |
 | 2026-06 | Fase 2 seed eliminatoria: `002_seed_knockout_matches.sql` |
-| 2026-06 | Fase 7 UI llaves: ranking con pestañas y resumen `KNOCKOUT_STAGE` en `/cards/[id]/summary` |
+| 2026-06 | Fase 8 revisión final: navegación, textos unificados, aislamiento `GROUP_STAGE` en `fetchMatchesWithTeams` |
 
 ---
 
@@ -116,7 +119,7 @@ Estas ideas **no** están aprobadas para desarrollo:
 - Exportar ranking a PDF/Excel
 - Notificaciones push o email de cierre de pronósticos
 - Múltiples deadlines por fase
-- Segunda etapa por llaves del Mundial — **en desarrollo por fases** (ver tabla arriba)
+- Segunda etapa por llaves del Mundial — **implementada** (ver tabla de fases)
 - Modo oscuro
 
 Cualquier ítem de esta lista requiere definición de negocio y autorización antes de codificar.

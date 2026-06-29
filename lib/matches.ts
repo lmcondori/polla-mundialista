@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabaseClient'
 import type { Match, MatchWithTeams, Team } from '@/lib/types'
 
+const GROUP_STAGE_PHASE = 'GROUP_STAGE'
+
 const MATCHES_JOIN_SELECT = `
   id,
   phase,
@@ -88,6 +90,7 @@ async function fetchMatchesWithTeamsJoin(): Promise<{
   const { data, error } = await supabase
     .from('matches')
     .select(MATCHES_JOIN_SELECT)
+    .eq('phase', GROUP_STAGE_PHASE)
     .order('match_date', { ascending: true })
 
   if (error) {
@@ -107,6 +110,7 @@ async function fetchMatchesWithTeamsSeparate(): Promise<{
     .select(
       'id, phase, group_name, match_date, status, local_score_real, visitor_score_real, local_team_id, visitor_team_id'
     )
+    .eq('phase', GROUP_STAGE_PHASE)
     .order('match_date', { ascending: true })
 
   if (matchesError) {

@@ -1,7 +1,6 @@
 import {
-  formatKnockoutSidePlaceholder,
   getKnockoutPhaseLabel,
-  isKnockoutSideDefined,
+  getKnockoutSideLabel,
   sortKnockoutMatchesByPhaseAndDate,
 } from '@/lib/knockoutMatches'
 import type {
@@ -58,14 +57,7 @@ function getSideDisplay(
   match: KnockoutMatchWithTeams,
   side: 'local' | 'visitor'
 ): { label: string; flag_url: string | null } {
-  const team = side === 'local' ? match.local_team : match.visitor_team
-  if (isKnockoutSideDefined(match, side) && team) {
-    return { label: team.name, flag_url: team.flag_url ?? null }
-  }
-  return {
-    label: formatKnockoutSidePlaceholder(match, side) ?? 'Por definir',
-    flag_url: null,
-  }
+  return getKnockoutSideLabel(match, side)
 }
 
 export function getKnockoutPredictionResult(

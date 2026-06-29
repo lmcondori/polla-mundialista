@@ -157,7 +157,7 @@ sequenceDiagram
   DB-->>A: OK
 ```
 
-**Estado:** RPC y funciones en `003_knockout_functions_and_views.sql`. Pantalla admin pendiente (Fase posterior).
+**Estado:** RPC, funciones y pantalla admin en `/admin/results` (pestaña Llaves).
 
 **Reglas:**
 
@@ -189,7 +189,7 @@ flowchart LR
 - Solo cartillas `ACTIVE` (las vistas ya las filtran).
 - Cartillas `INACTIVE` no aparecen.
 - Pestaña «Fase de grupos»: `vw_ranking_cards` (sin cambios).
-- Pestaña «Llaves»: `vw_ranking_cards_knockout`; columna `result_hits` = aciertos de clasificado (puntos 3).
+- Pestaña «Llaves»: `vw_ranking_cards_knockout`; columna `result_hits` = aciertos de clasificado (puntos 3); sin enlace a vista pública (solo grupos).
 - Orden oficial: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc (helper `lib/ranking.ts`).
 
 ---
@@ -269,7 +269,8 @@ flowchart TD
 | `lib/supabaseClient.ts` | Cliente Supabase |
 | `lib/types.ts` | Tipos TypeScript alineados a BD |
 | `lib/matchPrediction.ts` | Fechas Perú, cierre de pronósticos |
-| `lib/matches.ts` | Carga de partidos con equipos |
+| `lib/matches.ts` | Carga de partidos `GROUP_STAGE` con equipos |
+| `lib/knockoutMatches.ts` | Partidos eliminatoria, placeholders y etiquetas de equipos |
 | `lib/cardSummary.ts` | Etiquetas y stats de resumen |
 | `lib/settingsDeadline.ts` | Parse/build deadline Perú |
 | `lib/ranking.ts` | Orden oficial de vistas de ranking (grupos y llaves) |

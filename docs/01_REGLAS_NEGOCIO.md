@@ -13,15 +13,15 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 - Ranking en `vw_ranking_cards` (solo etapa de grupos).
 - Puntaje: exacto 5 · acierta ganador/empate 3 · fallo 0.
 
-### Etapa eliminatoria (en desarrollo por fases)
+### Etapa eliminatoria (implementada)
 
 - Segunda etapa **separada** de la fase de grupos.
 - Cartillas de llaves: `cards.stage = 'KNOCKOUT_STAGE'` (cartillas nuevas; no migrar las existentes).
 - **No** se reutiliza la misma cartilla de grupos para llaves.
 - Partidos de eliminatoria en `matches` con fases: `ROUND_OF_32`, `ROUND_OF_16`, `QUARTER_FINAL`, `SEMI_FINAL`, `THIRD_PLACE`, `FINAL`.
-- Ranking separado: `vw_ranking_cards_knockout` (Fase 7 — pestañas en `/ranking`).
+- Ranking separado: `vw_ranking_cards_knockout` (pestaña «Llaves» en `/ranking`).
 
-> La fase de grupos permanece operativa sin cambios de reglas ni de pantallas hasta completar cada fase aprobada.
+> La fase de grupos permanece operativa sin cambios de reglas ni de pantallas.
 
 ---
 
@@ -34,7 +34,7 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 | Estados | `ACTIVE` / `INACTIVE` |
 | **Etapa (`stage`)** | `GROUP_STAGE` (fase de grupos, default) \| `KNOCKOUT_STAGE` (eliminatoria) |
 | Cartillas existentes | Permanecen `GROUP_STAGE`; **no migrar** a llaves |
-| Cartillas de llaves | Nuevas cartillas con `stage = 'KNOCKOUT_STAGE'` (futuro, Fase UI) |
+| Cartillas de llaves | Nuevas cartillas con `stage = 'KNOCKOUT_STAGE'` |
 | Ranking grupos | Solo `ACTIVE` + `GROUP_STAGE` en `vw_ranking_cards` |
 | Ranking llaves | `ACTIVE` + `KNOCKOUT_STAGE` en `vw_ranking_cards_knockout`; pestaña «Llaves» en `/ranking` |
 
@@ -50,7 +50,7 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 | Unicidad | Un pronóstico por par `(card_id, match_id)` |
 | Puntos iniciales | Al guardar, `points = 0`; cálculo en servidor al cargar resultado |
 
-**Eliminatoria:** además del marcador, `predicted_winner_team_id` (bigint → `teams.id`). Pantallas de pronóstico: Fase posterior.
+**Eliminatoria:** además del marcador, `predicted_winner_team_id` (bigint → `teams.id`).
 
 ---
 

@@ -103,6 +103,7 @@ export default function HomePageContent() {
         .select('id')
         .eq('user_id', session.user.id)
         .eq('status', 'ACTIVE')
+        .or('stage.eq.GROUP_STAGE,stage.is.null')
 
       if (cardsError) {
         setError(cardsError.message)

@@ -19,7 +19,7 @@ Este archivo define el **contrato de trabajo** para cualquier agente o desarroll
 5. **Cambiar solo los archivos necesarios** — Sin refactors colaterales ni “mejoras” no solicitadas.
 6. **Ejecutar `npm run build` al final** — Obligatorio antes de dar por terminado cualquier cambio de código.
 7. **Si hay error de TypeScript, corregirlo antes de finalizar** — No entregar cambios que no compilen.
-8. **Segunda etapa por llaves** — En desarrollo por fases en rama `feature/etapa-llaves`. La fase de grupos **no debe romperse**. Ver [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS.md).
+8. **Segunda etapa por llaves** — Implementada en rama `feature/etapa-llaves` (Fases 1–8). La fase de grupos **no debe romperse**. Ver [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS.md).
 
 ---
 
@@ -41,7 +41,7 @@ Este archivo define el **contrato de trabajo** para cualquier agente o desarroll
 
 **Fase de grupos (implementada):** cartillas `GROUP_STAGE`, pronósticos de marcador, ranking en `vw_ranking_cards`.
 
-**Etapa eliminatoria (en desarrollo por fases):** cartillas separadas `KNOCKOUT_STAGE`, pronósticos de marcador + equipo clasificado, ranking en `vw_ranking_cards_knockout`. Backend Fase 3 en repo; pantallas pendientes.
+**Etapa eliminatoria (implementada):** cartillas separadas `KNOCKOUT_STAGE`, pronósticos de marcador + equipo clasificado, ranking en `vw_ranking_cards_knockout` (pestaña Llaves en `/ranking`), admin de resultados con propagación, resumen propio.
 
 - **UI:** español.
 - **Zona horaria:** Perú (`America/Lima`).
@@ -214,7 +214,7 @@ Lista completa: [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS
 ## Pendientes y fuera de alcance
 
 - Pendientes técnicos: tests, middleware auth, README — ver [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS.md).
-- **Etapa eliminatoria:** Fases 1–7 en repo (`feature/etapa-llaves`). Vista pública de cartillas de llaves pendiente.
+- **Etapa eliminatoria:** Fases 1–8 en repo (`feature/etapa-llaves`). Vista pública de cartillas de llaves (`/cards-public/[id]`) pendiente.
 
 ---
 

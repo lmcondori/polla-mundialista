@@ -140,6 +140,7 @@ export default function RankingPage() {
                 resultHitsLabel={
                   isKnockout ? 'Aciertos de clasificado' : undefined
                 }
+                showPublicDetail={!isKnockout}
               />
             </section>
           </>

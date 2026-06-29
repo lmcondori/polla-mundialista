@@ -4,11 +4,13 @@ import type { RankingEntry } from '@/lib/types'
 type RankingTableProps = {
   entries: RankingEntry[]
   resultHitsLabel?: string
+  showPublicDetail?: boolean
 }
 
 export default function RankingTable({
   entries,
   resultHitsLabel = 'Aciertos',
+  showPublicDetail = true,
 }: RankingTableProps) {
   if (entries.length === 0) {
     return (
@@ -70,12 +72,16 @@ export default function RankingTable({
                 {entry.total_predictions}
               </td>
               <td className="px-4 py-3 text-right">
-                <Link
-                  href={`/cards-public/${entry.card_id}`}
-                  className="inline-flex rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-50"
-                >
-                  Ver detalle
-                </Link>
+                {showPublicDetail ? (
+                  <Link
+                    href={`/cards-public/${entry.card_id}`}
+                    className="inline-flex rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-800 transition hover:bg-emerald-50"
+                  >
+                    Ver detalle
+                  </Link>
+                ) : (
+                  <span className="text-xs text-emerald-700/60">—</span>
+                )}
               </td>
             </tr>
           ))}

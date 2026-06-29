@@ -7,6 +7,7 @@ import {
   getKnockoutSideTeam,
   isKnockoutMatchTeamsDefined,
   isKnockoutSideDefined,
+  KNOCKOUT_TEAMS_PENDING_LABEL,
   type KnockoutMatchSide,
 } from '@/lib/knockoutMatches'
 import { validateKnockoutResultSave } from '@/lib/knockoutResults'
@@ -50,7 +51,9 @@ function KnockoutMatchSideDisplay({
   }
 
   return (
-    <span className="text-sm font-medium text-emerald-800/50">Por definir</span>
+    <span className="text-sm font-medium text-emerald-800/50">
+      {KNOCKOUT_TEAMS_PENDING_LABEL}
+    </span>
   )
 }
 
