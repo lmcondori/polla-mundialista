@@ -4,11 +4,14 @@ export type Profile = {
   role: string
 }
 
+export type CardStage = 'GROUP_STAGE' | 'KNOCKOUT_STAGE'
+
 export type Card = {
   id: string
   user_id: string
   card_name: string
   created_at?: string
+  stage?: CardStage | string
 }
 
 export type Team = {

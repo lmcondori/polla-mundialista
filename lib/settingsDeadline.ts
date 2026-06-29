@@ -32,6 +32,28 @@ export function parseDeadlineToInputs(isoValue: string): {
   }
 }
 
+export type CreationDeadlineGate = {
+  canCreate: boolean
+  label: string | null
+}
+
+/** Si no hay valor configurado, permite crear (criterio conservador). */
+export function evaluateCreationDeadline(
+  isoValue: string | null | undefined
+): CreationDeadlineGate {
+  if (!isoValue) {
+    return { canCreate: true, label: null }
+  }
+
+  const deadline = new Date(isoValue)
+  const now = new Date()
+
+  return {
+    canCreate: now < deadline,
+    label: `${formatMatchDatePeru(isoValue)} (hora Perú)`,
+  }
+}
+
 /** Construye ISO con offset fijo de Perú (-05:00). */
 export function buildPeruDeadlineIso(date: string, time: string): string {
   const [hours, minutes] = time.split(':')
