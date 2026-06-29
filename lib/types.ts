@@ -44,8 +44,34 @@ export type Prediction = {
   match_id: string
   local_score_predicted: number
   visitor_score_predicted: number
+  predicted_winner_team_id?: string | null
   points: number
 }
+
+export type KnockoutSourceType = 'WINNER' | 'LOSER'
+
+export type KnockoutMatchWithTeams = {
+  id: string
+  phase: string
+  match_number: number | null
+  match_date: string
+  status: string
+  local_score_real: number | null
+  visitor_score_real: number | null
+  local_team_id: string | null
+  visitor_team_id: string | null
+  local_source_match_number: number | null
+  visitor_source_match_number: number | null
+  local_source_type: KnockoutSourceType | null
+  visitor_source_type: KnockoutSourceType | null
+  local_team: Team | null
+  visitor_team: Team | null
+}
+
+export type KnockoutPredictionPick = Pick<
+  Prediction,
+  'local_score_predicted' | 'visitor_score_predicted' | 'predicted_winner_team_id'
+>
 
 export type RankingEntry = {
   card_id: string

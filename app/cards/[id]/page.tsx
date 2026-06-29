@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import CardPredictionsSection from '@/components/CardPredictionsSection'
 import CardPredictionsSummary from '@/components/CardPredictionsSummary'
+import KnockoutStagePredictions from '@/components/KnockoutStagePredictions'
 import Navbar from '@/components/Navbar'
 import { fetchMatchesWithTeams } from '@/lib/matches'
 import {
@@ -14,7 +15,7 @@ import {
   sortMatchesByDateAsc,
 } from '@/lib/matchPrediction'
 import { supabase } from '@/lib/supabaseClient'
-import type { Card, MatchWithTeams, Prediction } from '@/lib/types'
+import type { Card, CardStage, MatchWithTeams, Prediction } from '@/lib/types'
 
 type ViewMode = 'GROUP' | 'DATE'
 type StatusFilter = 'ALL' | 'PENDING' | 'PREDICTED' | 'CLOSED'
@@ -38,7 +39,9 @@ export default function CardDetailPage() {
   const params = useParams()
   const cardId = params.id as string
 
-  const [card, setCard] = useState<Pick<Card, 'id' | 'card_name'> | null>(null)
+  const [card, setCard] = useState<
+    Pick<Card, 'id' | 'card_name' | 'stage'> | null
+  >(null)
   const [matches, setMatches] = useState<MatchWithTeams[]>([])
   const [predictionsByMatch, setPredictionsByMatch] = useState<
     Record<string, PredictionPick>
@@ -75,7 +78,7 @@ export default function CardDetailPage() {
 
     const { data: cardData, error: cardError } = await supabase
       .from('cards')
-      .select('id, card_name, user_id')
+      .select('id, card_name, user_id, stage')
       .eq('id', cardId)
       .eq('user_id', session.user.id)
       .maybeSingle()
@@ -91,7 +94,18 @@ export default function CardDetailPage() {
       return
     }
 
-    setCard({ id: cardData.id, card_name: cardData.card_name })
+    const cardStage = (cardData.stage ?? 'GROUP_STAGE') as CardStage
+
+    setCard({
+      id: cardData.id,
+      card_name: cardData.card_name,
+      stage: cardStage,
+    })
+
+    if (cardStage === 'KNOCKOUT_STAGE') {
+      setLoading(false)
+      return
+    }
 
     const { data: matchesWithTeams, error: matchesError } =
       await fetchMatchesWithTeams()
@@ -302,31 +316,38 @@ export default function CardDetailPage() {
           ← Volver al dashboard
         </Link>
 
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold text-emerald-950 sm:text-3xl">
-            {card?.card_name ?? 'Cartilla'}
-          </h1>
-          <p className="mt-2 text-emerald-800/70">
-            Ingresa tus pronósticos de goles para cada partido.
-          </p>
-          <Link
-            href={`/cards/${cardId}/summary`}
-            className="mt-4 inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
-          >
-            Ver resumen de cartilla
-          </Link>
-        </header>
+        {card?.stage === 'KNOCKOUT_STAGE' ? (
+          <KnockoutStagePredictions
+            cardId={cardId}
+            cardName={card?.card_name ?? 'Cartilla'}
+          />
+        ) : (
+          <>
+            <header className="mb-6">
+              <h1 className="text-2xl font-bold text-emerald-950 sm:text-3xl">
+                {card?.card_name ?? 'Cartilla'}
+              </h1>
+              <p className="mt-2 text-emerald-800/70">
+                Ingresa tus pronósticos de goles para cada partido.
+              </p>
+              <Link
+                href={`/cards/${cardId}/summary`}
+                className="mt-4 inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
+              >
+                Ver resumen de cartilla
+              </Link>
+            </header>
 
-        {error && (
-          <p
-            role="alert"
-            className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
-          >
-            {error}
-          </p>
-        )}
+            {error && (
+              <p
+                role="alert"
+                className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                {error}
+              </p>
+            )}
 
-        {matches.length > 0 && (
+            {matches.length > 0 && (
           <CardPredictionsSummary
             total={summary.total}
             predicted={summary.predicted}
@@ -471,6 +492,8 @@ export default function CardDetailPage() {
               />
             ))}
           </div>
+        )}
+          </>
         )}
       </main>
     </div>

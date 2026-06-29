@@ -86,13 +86,12 @@ export default function CardList({
                 </Link>
               </>
             ) : (
-              <button
-                type="button"
-                disabled
-                className="cursor-not-allowed rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-center text-sm font-medium text-emerald-700/60"
+              <Link
+                href={`/cards/${card.id}`}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-center text-sm font-medium text-white transition hover:bg-emerald-700"
               >
-                Pronósticos de llaves próximamente
-              </button>
+                Ver pronósticos de llaves
+              </Link>
             )}
           </div>
         </li>
