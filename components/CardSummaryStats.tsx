@@ -5,9 +5,10 @@ type CardSummaryStatsProps = {
   missed: number
   pending: number
   totalPredictions: number
+  resultHitsLabel?: string
 }
 
-const ITEMS = [
+const BASE_ITEMS = [
   { key: 'totalPoints', label: 'Puntos totales' },
   { key: 'exactScores', label: 'Scores exactos' },
   { key: 'resultHits', label: 'Aciertos de resultado' },
@@ -23,7 +24,13 @@ export default function CardSummaryStats({
   missed,
   pending,
   totalPredictions,
+  resultHitsLabel,
 }: CardSummaryStatsProps) {
+  const items = BASE_ITEMS.map((item) =>
+    item.key === 'resultHits' && resultHitsLabel
+      ? { ...item, label: resultHitsLabel }
+      : item
+  )
   const values = {
     totalPoints,
     exactScores,
@@ -35,7 +42,7 @@ export default function CardSummaryStats({
 
   return (
     <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 sm:gap-4">
-      {ITEMS.map((item) => (
+      {items.map((item) => (
         <div
           key={item.key}
           className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm"

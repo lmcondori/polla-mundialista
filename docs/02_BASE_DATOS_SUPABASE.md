@@ -201,7 +201,7 @@ ORDER BY
   card_name ASC
 ```
 
-**Uso previsto en frontend:** `/ranking/knockout` (Fase posterior — pantalla no implementada).
+**Uso en frontend:** pestaña «Llaves» en `/ranking` (Fase 7).
 
 > `vw_ranking_cards` (grupos) **no se modifica** en esta fase.
 

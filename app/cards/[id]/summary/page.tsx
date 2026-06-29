@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import CardSummaryStats from '@/components/CardSummaryStats'
 import CardSummaryTable from '@/components/CardSummaryTable'
+import KnockoutCardSummaryTable from '@/components/KnockoutCardSummaryTable'
 import Navbar from '@/components/Navbar'
 import {
   buildCardSummaryStats,
@@ -12,21 +13,36 @@ import {
   PREDICTION_RESULT_FILTERS,
   type PredictionResultFilter,
 } from '@/lib/cardSummary'
+import {
+  buildKnockoutCardSummaryRows,
+  buildKnockoutCardSummaryStats,
+  KNOCKOUT_PREDICTION_RESULT_FILTERS,
+  type KnockoutPredictionRow,
+  type KnockoutResultFilter,
+} from '@/lib/knockoutCardSummary'
+import { fetchKnockoutMatchesWithTeams } from '@/lib/knockoutMatches'
 import { sortMatchesByDateAsc } from '@/lib/matchPrediction'
 import { supabase } from '@/lib/supabaseClient'
-import type { CardPredictionDetail } from '@/lib/types'
+import type { CardPredictionDetail, CardStage } from '@/lib/types'
 
 export default function CardSummaryPage() {
   const router = useRouter()
   const params = useParams()
   const cardId = params.id as string
 
-  const [rows, setRows] = useState<CardPredictionDetail[]>([])
+  const [cardStage, setCardStage] = useState<CardStage>('GROUP_STAGE')
+  const [groupRows, setGroupRows] = useState<CardPredictionDetail[]>([])
+  const [knockoutRows, setKnockoutRows] = useState<
+    ReturnType<typeof buildKnockoutCardSummaryRows>
+  >([])
   const [cardName, setCardName] = useState('')
   const [cardStatus, setCardStatus] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [resultFilter, setResultFilter] = useState<PredictionResultFilter>('ALL')
+  const [groupResultFilter, setGroupResultFilter] =
+    useState<PredictionResultFilter>('ALL')
+  const [knockoutResultFilter, setKnockoutResultFilter] =
+    useState<KnockoutResultFilter>('ALL')
 
   const handleLogout = useCallback(async () => {
     await supabase.auth.signOut()
@@ -34,37 +50,7 @@ export default function CardSummaryPage() {
     router.refresh()
   }, [router])
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    if (!session?.user) {
-      router.replace('/login')
-      return
-    }
-
-    const { data: cardData, error: cardError } = await supabase
-      .from('cards')
-      .select('id, card_name, user_id')
-      .eq('id', cardId)
-      .eq('user_id', session.user.id)
-      .maybeSingle()
-
-    if (cardError) {
-      setError(cardError.message)
-      setLoading(false)
-      return
-    }
-
-    if (!cardData) {
-      router.replace('/dashboard')
-      return
-    }
-
+  const loadGroupSummary = useCallback(async () => {
     const { data, error: viewError } = await supabase
       .from('vw_card_prediction_detail')
       .select(
@@ -97,17 +83,88 @@ export default function CardSummaryPage() {
       .order('match_date', { ascending: true })
 
     if (viewError) {
-      setError(viewError.message)
+      return { error: viewError.message }
+    }
+
+    const detailRows = (data ?? []) as CardPredictionDetail[]
+    setGroupRows(detailRows)
+    setCardStatus(detailRows[0]?.card_status ?? 'ACTIVE')
+    return { error: null }
+  }, [cardId])
+
+  const loadKnockoutSummary = useCallback(async () => {
+    const [matchesResult, predictionsResult] = await Promise.all([
+      fetchKnockoutMatchesWithTeams(),
+      supabase
+        .from('predictions')
+        .select(
+          'id, card_id, match_id, local_score_predicted, visitor_score_predicted, predicted_winner_team_id, points'
+        )
+        .eq('card_id', cardId),
+    ])
+
+    if (matchesResult.error) {
+      return { error: matchesResult.error }
+    }
+
+    if (predictionsResult.error) {
+      return { error: predictionsResult.error.message }
+    }
+
+    const predictions = (predictionsResult.data ?? []) as KnockoutPredictionRow[]
+    setKnockoutRows(
+      buildKnockoutCardSummaryRows(predictions, matchesResult.data)
+    )
+    return { error: null }
+  }, [cardId])
+
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session?.user) {
+      router.replace('/login')
+      return
+    }
+
+    const { data: cardData, error: cardError } = await supabase
+      .from('cards')
+      .select('id, card_name, user_id, stage, status')
+      .eq('id', cardId)
+      .eq('user_id', session.user.id)
+      .maybeSingle()
+
+    if (cardError) {
+      setError(cardError.message)
       setLoading(false)
       return
     }
 
-    const detailRows = (data ?? []) as CardPredictionDetail[]
-    setRows(detailRows)
+    if (!cardData) {
+      router.replace('/dashboard')
+      return
+    }
+
+    const stage = (cardData.stage ?? 'GROUP_STAGE') as CardStage
+    setCardStage(stage)
     setCardName(cardData.card_name)
-    setCardStatus(detailRows[0]?.card_status ?? 'ACTIVE')
+    setCardStatus(cardData.status ?? 'ACTIVE')
+
+    const summaryResult =
+      stage === 'KNOCKOUT_STAGE'
+        ? await loadKnockoutSummary()
+        : await loadGroupSummary()
+
+    if (summaryResult.error) {
+      setError(summaryResult.error)
+    }
+
     setLoading(false)
-  }, [cardId, router])
+  }, [cardId, loadGroupSummary, loadKnockoutSummary, router])
 
   useEffect(() => {
     loadData()
@@ -123,15 +180,26 @@ export default function CardSummaryPage() {
     return () => subscription.unsubscribe()
   }, [loadData, router])
 
-  const stats = useMemo(() => buildCardSummaryStats(rows), [rows])
+  const groupStats = useMemo(() => buildCardSummaryStats(groupRows), [groupRows])
+  const knockoutStats = useMemo(
+    () => buildKnockoutCardSummaryStats(knockoutRows),
+    [knockoutRows]
+  )
 
-  const filteredRows = useMemo(() => {
+  const filteredGroupRows = useMemo(() => {
     const filtered =
-      resultFilter === 'ALL'
-        ? rows
-        : rows.filter((row) => row.prediction_result === resultFilter)
+      groupResultFilter === 'ALL'
+        ? groupRows
+        : groupRows.filter((row) => row.prediction_result === groupResultFilter)
     return sortMatchesByDateAsc(filtered)
-  }, [rows, resultFilter])
+  }, [groupRows, groupResultFilter])
+
+  const filteredKnockoutRows = useMemo(() => {
+    if (knockoutResultFilter === 'ALL') return knockoutRows
+    return knockoutRows.filter(
+      (row) => row.prediction_result === knockoutResultFilter
+    )
+  }, [knockoutRows, knockoutResultFilter])
 
   if (loading) {
     return (
@@ -142,6 +210,24 @@ export default function CardSummaryPage() {
   }
 
   const isActive = cardStatus === 'ACTIVE'
+  const isKnockout = cardStage === 'KNOCKOUT_STAGE'
+  const stats = isKnockout ? knockoutStats : groupStats
+  const totalRows = isKnockout ? knockoutRows.length : groupRows.length
+  const filteredCount = isKnockout
+    ? filteredKnockoutRows.length
+    : filteredGroupRows.length
+  const filters = isKnockout
+    ? KNOCKOUT_PREDICTION_RESULT_FILTERS
+    : PREDICTION_RESULT_FILTERS
+  const activeFilter = isKnockout ? knockoutResultFilter : groupResultFilter
+
+  const handleFilterChange = (value: string) => {
+    if (isKnockout) {
+      setKnockoutResultFilter(value as KnockoutResultFilter)
+      return
+    }
+    setGroupResultFilter(value as PredictionResultFilter)
+  }
 
   return (
     <div className="flex min-h-full flex-col bg-gradient-to-b from-emerald-50 to-white">
@@ -177,9 +263,16 @@ export default function CardSummaryPage() {
             >
               {getCardStatusLabel(cardStatus)}
             </span>
+            {isKnockout && (
+              <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
+                Etapa de llaves
+              </span>
+            )}
           </div>
           <p className="mt-2 text-emerald-800/70">
-            Revisa el avance de tu cartilla y los puntos obtenidos por partido.
+            {isKnockout
+              ? 'Revisa el avance de tu cartilla de llaves y los puntos obtenidos por partido.'
+              : 'Revisa el avance de tu cartilla y los puntos obtenidos por partido.'}
           </p>
         </header>
 
@@ -199,6 +292,9 @@ export default function CardSummaryPage() {
           missed={stats.missed}
           pending={stats.pending}
           totalPredictions={stats.totalPredictions}
+          resultHitsLabel={
+            isKnockout ? 'Aciertos de clasificado' : undefined
+          }
         />
 
         <section className="mb-6 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
@@ -209,13 +305,13 @@ export default function CardSummaryPage() {
             Filtrar por estado
           </label>
           <div className="flex flex-wrap gap-2">
-            {PREDICTION_RESULT_FILTERS.map((filter) => (
+            {filters.map((filter) => (
               <button
                 key={filter.value}
                 type="button"
-                onClick={() => setResultFilter(filter.value)}
+                onClick={() => handleFilterChange(filter.value)}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                  resultFilter === filter.value
+                  activeFilter === filter.value
                     ? 'bg-emerald-600 text-white'
                     : 'border border-emerald-200 text-emerald-800 hover:bg-emerald-50'
                 }`}
@@ -226,19 +322,21 @@ export default function CardSummaryPage() {
           </div>
           <p className="mt-3 text-sm text-emerald-800/80">
             Mostrando{' '}
-            <span className="font-semibold">{filteredRows.length}</span> de{' '}
-            <span className="font-semibold">{rows.length}</span> pronósticos
+            <span className="font-semibold">{filteredCount}</span> de{' '}
+            <span className="font-semibold">{totalRows}</span> pronósticos
           </p>
         </section>
 
-        {rows.length === 0 ? (
+        {totalRows === 0 ? (
           <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 px-6 py-12 text-center">
             <p className="text-emerald-800/80">
               Aún no hay pronósticos registrados en esta cartilla.
             </p>
           </div>
+        ) : isKnockout ? (
+          <KnockoutCardSummaryTable rows={filteredKnockoutRows} />
         ) : (
-          <CardSummaryTable rows={filteredRows} />
+          <CardSummaryTable rows={filteredGroupRows} />
         )}
       </main>
     </div>

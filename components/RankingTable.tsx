@@ -3,9 +3,13 @@ import type { RankingEntry } from '@/lib/types'
 
 type RankingTableProps = {
   entries: RankingEntry[]
+  resultHitsLabel?: string
 }
 
-export default function RankingTable({ entries }: RankingTableProps) {
+export default function RankingTable({
+  entries,
+  resultHitsLabel = 'Aciertos',
+}: RankingTableProps) {
   if (entries.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 px-6 py-12 text-center">
@@ -33,7 +37,7 @@ export default function RankingTable({ entries }: RankingTableProps) {
               Exactos
             </th>
             <th className="px-4 py-3 text-right font-semibold text-emerald-900">
-              Aciertos
+              {resultHitsLabel}
             </th>
             <th className="px-4 py-3 text-right font-semibold text-emerald-900">
               Pronósticos

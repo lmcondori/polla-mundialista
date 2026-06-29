@@ -14,22 +14,23 @@ Descripción de flujos por actor y ruta. Refleja el comportamiento **implementad
 | `/dashboard` | Autenticado | Cartillas del usuario |
 | `/cards/[id]` | Autenticado (dueño) | Pronósticos de una cartilla |
 | `/cards/[id]/summary` | Autenticado (dueño) | Resumen detallado propio |
-| `/ranking` | Público / autenticado | Ranking y podio |
+| `/ranking` | Público / autenticado | Ranking y podio (pestañas: fase de grupos y llaves) |
 | `/cards-public/[id]` | Autenticado | Vista pública de cartilla ajena |
 | `/admin/cards` | Admin | Gestión de cartillas |
 | `/admin/results` | Admin | Carga de resultados |
 | `/admin/settings` | Admin | Configuración global |
 | `/knockout-preview` | Público | Proyección informativa de grupos/llaves (sin pronósticos) |
 
-### Etapa eliminatoria (backend Fase 3 — pantallas pendientes)
+### Etapa eliminatoria (Fases 4–7 implementadas en repo)
 
 | Ruta / flujo | Actor | Descripción | Estado |
 |--------------|-------|-------------|--------|
-| `/ranking/knockout` (propuesta) | Público | Ranking cartillas `KNOCKOUT_STAGE` vía `vw_ranking_cards_knockout` | ⏳ Pantalla |
-| Cartilla `KNOCKOUT_STAGE` | Autenticado | Cartilla nueva separada; marcador + equipo clasificado | ⏳ Pantalla |
-| Admin resultados llaves | Admin | RPC `save_knockout_match_result_and_recalculate` | ✅ Backend |
+| `/ranking` (pestaña Llaves) | Público | Ranking cartillas `KNOCKOUT_STAGE` vía `vw_ranking_cards_knockout` | ✅ |
+| Cartilla `KNOCKOUT_STAGE` | Autenticado | Cartilla nueva separada; marcador + equipo clasificado | ✅ |
+| `/cards/[id]/summary` (llaves) | Autenticado (dueño) | Resumen de pronósticos eliminatoria | ✅ |
+| Admin resultados llaves | Admin | RPC `save_knockout_match_result_and_recalculate` | ✅ |
 
-**Sin cambios en pantallas actuales:** `/cards/[id]`, `/admin/results`, `/ranking` (fase de grupos intacta).
+**Sin cambios en lógica de grupos:** ranking de fase de grupos intacto en pestaña dedicada; pronósticos y RPC de grupos sin modificar.
 
 ---
 
@@ -171,19 +172,24 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  A[/ranking] --> B[SELECT vw_ranking_cards]
-  B --> C[Ordenar: puntos, exactos, aciertos, nombre cartilla]
-  C --> D[Podio top 3]
-  C --> E[Tabla completa]
-  E --> F[Ver detalle → /cards-public/card_id]
+  A[/ranking] --> B{Pestaña activa}
+  B -->|Grupos| C[SELECT vw_ranking_cards]
+  B -->|Llaves| D[SELECT vw_ranking_cards_knockout]
+  C --> E[Ordenar: puntos, exactos, aciertos, nombre cartilla]
+  D --> E
+  E --> F[Podio top 3]
+  E --> G[Tabla completa]
+  G --> H[Ver detalle → /cards-public/card_id]
 ```
 
-**Archivos:** `app/ranking/page.tsx`, `components/RankingPodium.tsx`, `components/RankingTable.tsx`, `components/RankingSummaryCards.tsx`
+**Archivos:** `app/ranking/page.tsx`, `components/RankingPodium.tsx`, `components/RankingTable.tsx`, `components/RankingSummaryCards.tsx`, `lib/ranking.ts`
 
 **Reglas:**
 
-- Solo cartillas `ACTIVE` (la vista ya las filtra).
+- Solo cartillas `ACTIVE` (las vistas ya las filtran).
 - Cartillas `INACTIVE` no aparecen.
+- Pestaña «Fase de grupos»: `vw_ranking_cards` (sin cambios).
+- Pestaña «Llaves»: `vw_ranking_cards_knockout`; columna `result_hits` = aciertos de clasificado (puntos 3).
 - Orden oficial: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc (helper `lib/ranking.ts`).
 
 ---
@@ -194,10 +200,12 @@ flowchart LR
 
 1. Usuario autenticado.
 2. Verificar que la cartilla pertenece al usuario (`cards` + `user_id`).
-3. Cargar `vw_card_prediction_detail` filtrado por `card_id`.
+3. Según `cards.stage`:
+   - **`GROUP_STAGE`:** cargar `vw_card_prediction_detail` filtrado por `card_id` (comportamiento original).
+   - **`KNOCKOUT_STAGE`:** cargar `predictions` + partidos eliminatoria (`matches` con equipos); mostrar marcador, clasificado pronosticado/real y placeholders de plantilla.
 4. Mostrar estadísticas y tabla con todos los pronósticos (incluidos futuros, porque es el dueño).
 
-**Archivos:** `app/cards/[id]/summary/page.tsx`, `components/CardSummaryStats.tsx`, `components/CardSummaryTable.tsx`
+**Archivos:** `app/cards/[id]/summary/page.tsx`, `components/CardSummaryStats.tsx`, `components/CardSummaryTable.tsx`, `components/KnockoutCardSummaryTable.tsx`, `lib/cardSummary.ts`, `lib/knockoutCardSummary.ts`
 
 ---
 
@@ -264,7 +272,8 @@ flowchart TD
 | `lib/matches.ts` | Carga de partidos con equipos |
 | `lib/cardSummary.ts` | Etiquetas y stats de resumen |
 | `lib/settingsDeadline.ts` | Parse/build deadline Perú |
-| `lib/ranking.ts` | Orden oficial de `vw_ranking_cards` |
+| `lib/ranking.ts` | Orden oficial de vistas de ranking (grupos y llaves) |
+| `lib/knockoutCardSummary.ts` | Stats y filas de resumen eliminatoria |
 | `supabase/migrations/` | Migraciones SQL (Fases 1–3 etapa eliminatoria) |
 | `components/Navbar.tsx` | Navegación global |
 | `components/TeamFlag.tsx` | Banderas |

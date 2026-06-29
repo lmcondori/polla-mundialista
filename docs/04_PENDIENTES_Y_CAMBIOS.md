@@ -37,7 +37,8 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 - [x] Banderas de equipos (`teams.flag_url`)
 - [x] Fixture de fase de grupos cargado
 - [x] Vista pública controlada de cartillas ajenas (`/cards-public/[id]`)
-- [x] Proyección informativa `/knockout-preview` (sin pronósticos)
+- [x] Ranking de llaves (pestaña en `/ranking`)
+- [x] Resumen de cartilla de llaves (`/cards/[id]/summary`)
 
 ---
 
@@ -48,7 +49,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 | **1** | Esquema BD (`cards.stage`, columnas `matches`/`predictions`) + docs | ✅ En repo |
 | **2** | Seed partidos 73–104 | ✅ En repo (`002_seed_knockout_matches.sql`) |
 | **3** | Funciones RPC, puntaje eliminatoria, propagación, `vw_ranking_cards_knockout` | ✅ En repo (`003_knockout_functions_and_views.sql`) |
-| **4+** | Pantallas: cartillas llaves, pronósticos, admin resultados llaves, ranking llaves | ⏳ Pendiente |
+| **4+** | Pantallas: cartillas llaves, pronósticos, admin resultados llaves, ranking llaves, resumen llaves | ✅ Fases 4–7 en repo |
 
 **Decisiones oficiales:**
 
@@ -69,7 +70,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 | Vista pública cartilla INACTIVE | Baja | Hoy `vw_ranking_cards` solo expone ACTIVE; mensaje específico para INACTIVE requiere otra fuente/RLS |
 | Protección server-side | Baja | Evaluar Server Components / Route Handlers si se endurece seguridad |
 | Confirmación email registro | Baja | Depende de configuración Supabase Auth |
-| Etiquetas UI fases eliminatorias | 🚧 En curso | Pantallas en fases 5+; Fase 1 solo esquema |
+| Etiquetas UI fases eliminatorias | ✅ Completado | Fases 4–7: dashboard, pronósticos, admin, ranking y resumen llaves |
 
 ---
 
@@ -104,7 +105,7 @@ Antes de implementar cualquier feature o fix:
 | 2026-05 | Vista pública `/cards-public/[id]` con ocultamiento de pronósticos futuros |
 | 2026-06 | Fase 1 etapa eliminatoria: migración `001_knockout_stage_schema.sql`, docs actualizados |
 | 2026-06 | Fase 2 seed eliminatoria: `002_seed_knockout_matches.sql` |
-| 2026-06 | Fase 3 backend llaves: `003_knockout_functions_and_views.sql`, docs actualizados |
+| 2026-06 | Fase 7 UI llaves: ranking con pestañas y resumen `KNOCKOUT_STAGE` en `/cards/[id]/summary` |
 
 ---
 

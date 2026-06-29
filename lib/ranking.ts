@@ -1,6 +1,13 @@
-/** Columnas estándar para listados desde `vw_ranking_cards`. */
+/** Columnas estándar para listados desde vistas de ranking. */
 export const RANKING_ENTRY_SELECT =
   'card_id, card_name, user_id, full_name, total_points, total_predictions, exact_scores, result_hits'
+
+export type RankingStage = 'GROUP_STAGE' | 'KNOCKOUT_STAGE'
+
+export const RANKING_VIEW_BY_STAGE: Record<RankingStage, string> = {
+  GROUP_STAGE: 'vw_ranking_cards',
+  KNOCKOUT_STAGE: 'vw_ranking_cards_knockout',
+}
 
 type OrderableQuery = {
   order: (

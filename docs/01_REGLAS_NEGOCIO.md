@@ -19,7 +19,7 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 - Cartillas de llaves: `cards.stage = 'KNOCKOUT_STAGE'` (cartillas nuevas; no migrar las existentes).
 - **No** se reutiliza la misma cartilla de grupos para llaves.
 - Partidos de eliminatoria en `matches` con fases: `ROUND_OF_32`, `ROUND_OF_16`, `QUARTER_FINAL`, `SEMI_FINAL`, `THIRD_PLACE`, `FINAL`.
-- Ranking separado: `vw_ranking_cards_knockout` (Fase 3 — SQL en repo; pantallas pendientes).
+- Ranking separado: `vw_ranking_cards_knockout` (Fase 7 — pestañas en `/ranking`).
 
 > La fase de grupos permanece operativa sin cambios de reglas ni de pantallas hasta completar cada fase aprobada.
 
@@ -36,7 +36,7 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 | Cartillas existentes | Permanecen `GROUP_STAGE`; **no migrar** a llaves |
 | Cartillas de llaves | Nuevas cartillas con `stage = 'KNOCKOUT_STAGE'` (futuro, Fase UI) |
 | Ranking grupos | Solo `ACTIVE` + `GROUP_STAGE` en `vw_ranking_cards` |
-| Ranking llaves | `ACTIVE` + `KNOCKOUT_STAGE` en `vw_ranking_cards_knockout` |
+| Ranking llaves | `ACTIVE` + `KNOCKOUT_STAGE` en `vw_ranking_cards_knockout`; pestaña «Llaves» en `/ranking` |
 
 ---
 
@@ -80,7 +80,7 @@ El cálculo se realiza en **Supabase** (funciones de BD invocadas vía RPC). El 
 
 1. Mayor puntaje total (`total_points` descendente)
 2. Mayor cantidad de marcadores exactos (`exact_scores` descendente)
-3. Mayor cantidad de aciertos de resultado (`result_hits` descendente)
+3. Mayor cantidad de aciertos de resultado o clasificado (`result_hits` descendente)
 4. Nombre de cartilla en orden alfabético ascendente (`card_name` ascendente)
 
 El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits` desc y `card_name` asc.
@@ -103,7 +103,7 @@ El participante pronostica marcador y `predicted_winner_team_id`. El admin regis
 |-------|---------|
 | Quién carga | Solo usuarios con `profiles.role = 'admin'` |
 | Cómo (grupos) | RPC `save_match_result_and_recalculate` desde `/admin/results` |
-| Cómo (llaves) | RPC `save_knockout_match_result_and_recalculate` (pantalla admin pendiente) |
+| Cómo (llaves) | RPC `save_knockout_match_result_and_recalculate` desde `/admin/results` (pestaña Llaves) |
 | Efecto grupos | Actualiza marcador real, recalcula `predictions.points` |
 | Efecto llaves | Actualiza marcador, `winner_team_id`, `loser_team_id`, recalcula puntos y propaga equipos a partidos plantilla |
 | Estado | `status` del partido (p. ej. `PENDING`, `FINISHED`) |
