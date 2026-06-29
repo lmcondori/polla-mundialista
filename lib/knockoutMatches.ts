@@ -92,19 +92,50 @@ function formatSourceSide(
   return `${role} Partido ${matchNumber}`
 }
 
-export function formatKnockoutMatchOrigin(match: KnockoutMatchWithTeams): string | null {
-  const local = formatSourceSide(
-    match.local_source_match_number,
-    match.local_source_type
-  )
-  const visitor = formatSourceSide(
+export type KnockoutMatchSide = 'local' | 'visitor'
+
+export function getKnockoutSideTeam(
+  match: KnockoutMatchWithTeams,
+  side: KnockoutMatchSide
+): Team | null {
+  return side === 'local' ? match.local_team : match.visitor_team
+}
+
+export function isKnockoutSideDefined(
+  match: KnockoutMatchWithTeams,
+  side: KnockoutMatchSide
+): boolean {
+  const teamId = side === 'local' ? match.local_team_id : match.visitor_team_id
+  return teamId !== null
+}
+
+export function formatKnockoutSidePlaceholder(
+  match: KnockoutMatchWithTeams,
+  side: KnockoutMatchSide
+): string | null {
+  if (side === 'local') {
+    return formatSourceSide(
+      match.local_source_match_number,
+      match.local_source_type
+    )
+  }
+  return formatSourceSide(
     match.visitor_source_match_number,
     match.visitor_source_type
   )
+}
 
-  if (local && visitor) return `${local} vs ${visitor}`
-  if (local) return local
-  if (visitor) return visitor
+export function formatKnockoutMatchOrigin(match: KnockoutMatchWithTeams): string | null {
+  const localLabel = isKnockoutSideDefined(match, 'local')
+    ? match.local_team?.name ?? null
+    : formatKnockoutSidePlaceholder(match, 'local')
+  const visitorLabel = isKnockoutSideDefined(match, 'visitor')
+    ? match.visitor_team?.name ?? null
+    : formatKnockoutSidePlaceholder(match, 'visitor')
+
+  if (localLabel && visitorLabel) return `${localLabel} vs ${visitorLabel}`
+  if (localLabel) return localLabel
+  if (visitorLabel) return visitorLabel
   return null
 }
 

@@ -5,7 +5,7 @@ import AdminKnockoutMatchResultRow from '@/components/AdminKnockoutMatchResultRo
 import {
   fetchKnockoutMatchesWithTeams,
   getKnockoutPhaseLabel,
-  isKnockoutMatchTeamsDefined,
+  isKnockoutSideDefined,
   KNOCKOUT_PHASE_ORDER,
 } from '@/lib/knockoutMatches'
 import { sortMatchesByDateAsc } from '@/lib/matchPrediction'
@@ -54,16 +54,17 @@ export default function AdminKnockoutResultsSection() {
         return false
       }
 
-      if (teamQuery && isKnockoutMatchTeamsDefined(match)) {
-        const local = match.local_team!.name.toLowerCase()
-        const visitor = match.visitor_team!.name.toLowerCase()
-        if (!local.includes(teamQuery) && !visitor.includes(teamQuery)) {
+      if (teamQuery) {
+        const names: string[] = []
+        if (isKnockoutSideDefined(match, 'local') && match.local_team) {
+          names.push(match.local_team.name.toLowerCase())
+        }
+        if (isKnockoutSideDefined(match, 'visitor') && match.visitor_team) {
+          names.push(match.visitor_team.name.toLowerCase())
+        }
+        if (names.length === 0 || !names.some((name) => name.includes(teamQuery))) {
           return false
         }
-      }
-
-      if (teamQuery && !isKnockoutMatchTeamsDefined(match)) {
-        return false
       }
 
       return true
