@@ -5,6 +5,10 @@ import type { KnockoutMatchWithTeams, Team } from '@/lib/types'
 
 export const KNOCKOUT_TEAMS_PENDING_LABEL = 'Pendiente de definir equipos'
 
+/** Rango oficial del cuadro de eliminación directa (partidos 73–104). */
+export const KNOCKOUT_BRACKET_MATCH_NUMBER_MIN = 73
+export const KNOCKOUT_BRACKET_MATCH_NUMBER_MAX = 104
+
 const KNOCKOUT_PHASE_ORDER: KnockoutRound[] = [
   'ROUND_OF_32',
   'ROUND_OF_16',
@@ -163,6 +167,39 @@ export function getKnockoutPhaseLabel(phase: string): string {
   return phase
 }
 
+export function isKnockoutMatchFinished(match: KnockoutMatchWithTeams): boolean {
+  return match.status === 'FINISHED'
+}
+
+export function getKnockoutMatchStatusLabel(match: KnockoutMatchWithTeams): string {
+  return isKnockoutMatchFinished(match) ? 'Finalizado' : 'Por jugar'
+}
+
+export function groupKnockoutMatchesByPhase(
+  matches: KnockoutMatchWithTeams[]
+): {
+  phase: KnockoutRound
+  label: string
+  matches: KnockoutMatchWithTeams[]
+}[] {
+  const byPhase = new Map<KnockoutRound, KnockoutMatchWithTeams[]>()
+
+  for (const match of matches) {
+    const phase = match.phase as KnockoutRound
+    const list = byPhase.get(phase) ?? []
+    list.push(match)
+    byPhase.set(phase, list)
+  }
+
+  return KNOCKOUT_PHASE_ORDER.map((phase) => ({
+    phase,
+    label: getKnockoutPhaseLabel(phase),
+    matches: (byPhase.get(phase) ?? []).sort(
+      (a, b) => (a.match_number ?? 0) - (b.match_number ?? 0)
+    ),
+  })).filter((round) => round.matches.length > 0)
+}
+
 export function sortKnockoutMatchesByPhaseAndDate(
   matches: KnockoutMatchWithTeams[]
 ): KnockoutMatchWithTeams[] {
@@ -190,6 +227,29 @@ export async function fetchKnockoutMatchesWithTeams(): Promise<{
     .from('matches')
     .select(KNOCKOUT_MATCHES_SELECT)
     .neq('phase', 'GROUP_STAGE')
+    .order('match_date', { ascending: true })
+
+  if (error) {
+    return { data: [], error: error.message }
+  }
+
+  const rows = (data ?? []).map((row) =>
+    normalizeKnockoutRow(row as SupabaseKnockoutRow)
+  )
+
+  return { data: sortKnockoutMatchesByPhaseAndDate(rows), error: null }
+}
+
+/** Partidos reales del cuadro de llaves (match_number 73–104). */
+export async function fetchKnockoutBracketMatches(): Promise<{
+  data: KnockoutMatchWithTeams[]
+  error: string | null
+}> {
+  const { data, error } = await supabase
+    .from('matches')
+    .select(KNOCKOUT_MATCHES_SELECT)
+    .gte('match_number', KNOCKOUT_BRACKET_MATCH_NUMBER_MIN)
+    .lte('match_number', KNOCKOUT_BRACKET_MATCH_NUMBER_MAX)
     .order('match_date', { ascending: true })
 
   if (error) {

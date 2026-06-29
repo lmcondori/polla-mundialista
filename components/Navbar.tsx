@@ -24,10 +24,10 @@ export default function Navbar({ showAuthLinks = true, onLogout }: NavbarProps) 
             Ranking
           </Link>
           <Link
-            href="/knockout-preview"
+            href="/knockout"
             className="rounded-lg px-3 py-2 text-emerald-800 transition hover:bg-emerald-50"
           >
-            Llaves probables
+            Llaves
           </Link>
           {showAuthLinks && (
             <>

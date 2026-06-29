@@ -196,6 +196,7 @@ Detalle completo: [docs/02_BASE_DATOS_SUPABASE.md](./docs/02_BASE_DATOS_SUPABASE
 | `/cards/[id]` | Dueño | `cards`, `matches`, `predictions` |
 | `/cards/[id]/summary` | Dueño | `vw_card_prediction_detail` (grupos) o `predictions` + `matches` (llaves) |
 | `/ranking` | Público | `vw_ranking_cards`, `vw_ranking_cards_knockout` (pestañas) |
+| `/knockout` | Público | Cuadro de llaves real (`matches` 73–104) |
 | `/cards-public/[id]` | Autenticado | `vw_ranking_cards`, `vw_card_prediction_detail` |
 | `/admin/*` | Admin | `cards`, `matches`, RPCs |
 
@@ -205,7 +206,7 @@ Flujos detallados: [docs/03_FLUJOS_FUNCIONALES.md](./docs/03_FLUJOS_FUNCIONALES.
 
 ## Funcionalidades implementadas
 
-Autenticación · perfiles y roles · dashboard · cartillas ACTIVE/INACTIVE · pronósticos con bloqueo por fecha · resultados admin · recálculo de puntos · ranking y podio (grupos y llaves) · resumen propio (grupos y llaves) · admin cartillas/settings · banderas · fixture grupos · vista pública controlada · cartillas y pronósticos de llaves.
+Autenticación · perfiles y roles · dashboard · cartillas ACTIVE/INACTIVE · pronósticos con bloqueo por fecha · resultados admin · recálculo de puntos · ranking y podio (grupos y llaves) · resumen propio (grupos y llaves) · admin cartillas/settings · banderas · fixture grupos · vista pública controlada · cartillas y pronósticos de llaves · cuadro de llaves (`/knockout`).
 
 Lista completa: [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS.md).
 
@@ -214,7 +215,7 @@ Lista completa: [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS
 ## Pendientes y fuera de alcance
 
 - Pendientes técnicos: tests, middleware auth, README — ver [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS.md).
-- **Etapa eliminatoria:** Fases 1–8 en repo (`feature/etapa-llaves`). Vista pública de cartillas de llaves (`/cards-public/[id]`) pendiente.
+- **Etapa eliminatoria:** Fases 1–9 en repo (`feature/etapa-llaves`). Vista pública de cartillas de llaves (`/cards-public/[id]`) pendiente.
 
 ---
 

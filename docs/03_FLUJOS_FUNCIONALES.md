@@ -19,7 +19,8 @@ Descripción de flujos por actor y ruta. Refleja el comportamiento **implementad
 | `/admin/cards` | Admin | Gestión de cartillas |
 | `/admin/results` | Admin | Carga de resultados |
 | `/admin/settings` | Admin | Configuración global |
-| `/knockout-preview` | Público | Proyección informativa de grupos/llaves (sin pronósticos) |
+| `/knockout` | Público | Cuadro gráfico de llaves reales (partidos 73–104) |
+| `/knockout-preview` | Público | Proyección referencial de grupos (sin menú; fuera de navegación principal) |
 
 ### Etapa eliminatoria (Fases 4–7 implementadas en repo)
 
@@ -29,6 +30,7 @@ Descripción de flujos por actor y ruta. Refleja el comportamiento **implementad
 | Cartilla `KNOCKOUT_STAGE` | Autenticado | Cartilla nueva separada; marcador + equipo clasificado | ✅ |
 | `/cards/[id]/summary` (llaves) | Autenticado (dueño) | Resumen de pronósticos eliminatoria | ✅ |
 | Admin resultados llaves | Admin | RPC `save_knockout_match_result_and_recalculate` | ✅ |
+| `/knockout` | Público | Cuadro de llaves real desde `matches` (73–104) | ✅ |
 
 **Sin cambios en lógica de grupos:** ranking de fase de grupos intacto en pestaña dedicada; pronósticos y RPC de grupos sin modificar.
 
@@ -262,6 +264,37 @@ flowchart TD
 
 ---
 
+## Flujo 10 — Cuadro de llaves (eliminatoria real)
+
+**Ruta:** `/knockout`
+
+```mermaid
+flowchart TD
+  A[Usuario en /knockout] --> B[fetchKnockoutBracketMatches]
+  B --> C[SELECT matches 73–104 + teams]
+  C --> D[Agrupar por fase]
+  D --> E[Render KnockoutBracket]
+  E --> F{¿Equipo definido?}
+  F -->|Sí| G[Nombre + bandera]
+  F -->|No| H[Placeholder Ganador/Perdedor Partido X]
+  E --> I{¿status FINISHED?}
+  I -->|Sí| J[Marcador + resaltar winner_team_id]
+  I -->|No| K[Estado Por jugar]
+```
+
+**Archivos:** `app/knockout/page.tsx`, `components/KnockoutBracket.tsx`, `lib/knockoutMatches.ts`
+
+**Reglas:**
+
+- Solo lectura; sin pronósticos ni edición.
+- Fuente: `public.matches` con `match_number` entre 73 y 104.
+- Placeholders según `local_source_*` / `visitor_source_*` (`WINNER` / `LOSER`).
+- Equipos propagados por admin aparecen cuando `local_team_id` / `visitor_team_id` están definidos.
+- Navegación principal: enlace «Llaves» en `Navbar` (ya no «Llaves probables»).
+- `/knockout-preview` permanece como proyección referencial de fase de grupos, **fuera del menú**.
+
+---
+
 ## Componentes y librerías compartidas
 
 | Módulo | Responsabilidad |
@@ -270,7 +303,7 @@ flowchart TD
 | `lib/types.ts` | Tipos TypeScript alineados a BD |
 | `lib/matchPrediction.ts` | Fechas Perú, cierre de pronósticos |
 | `lib/matches.ts` | Carga de partidos `GROUP_STAGE` con equipos |
-| `lib/knockoutMatches.ts` | Partidos eliminatoria, placeholders y etiquetas de equipos |
+| `lib/knockoutMatches.ts` | Partidos eliminatoria, placeholders, cuadro 73–104 |
 | `lib/cardSummary.ts` | Etiquetas y stats de resumen |
 | `lib/settingsDeadline.ts` | Parse/build deadline Perú |
 | `lib/ranking.ts` | Orden oficial de vistas de ranking (grupos y llaves) |
