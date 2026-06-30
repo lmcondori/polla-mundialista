@@ -8,7 +8,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 
 | Tema | Estado | Notas |
 |------|--------|-------|
-| **Etapa eliminatoria** | ✅ Implementada | Rama `feature/etapa-llaves` (Fases 1–9). **No romper fase de grupos.** |
+| **Etapa eliminatoria** | ✅ Implementada | Rama `feature/etapa-llaves` (Fases 1–10). **No romper fase de grupos.** |
 | Cambio de reglas de puntaje grupos | 🚫 Prohibido | 5 / 3 / 0 en funciones de BD para `GROUP_STAGE` |
 | Puntaje eliminatoria | ✅ En repo | 5 / 3 / 0 con clasificado; `003_knockout_functions_and_views.sql` |
 | Renombrar columnas/tablas | 🚫 Prohibido | Ver `01_REGLAS_NEGOCIO.md` y `02_BASE_DATOS_SUPABASE.md` |
@@ -55,6 +55,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 | **4–7** | Pantallas: cartillas llaves, pronósticos, admin resultados llaves, ranking llaves, resumen llaves | ✅ En repo |
 | **8** | Revisión final, navegación, textos y aislamiento grupos/llaves | ✅ En repo |
 | **9** | Cuadro gráfico de llaves reales (`/knockout`) | ✅ En repo |
+| **10** | Ranking oficial de llaves desde octavos (`004_knockout_ranking_from_round_of_16.sql`) | ✅ En repo |
 
 **Decisiones oficiales:**
 
@@ -112,6 +113,7 @@ Antes de implementar cualquier feature o fix:
 | 2026-06 | Fase 2 seed eliminatoria: `002_seed_knockout_matches.sql` |
 | 2026-06 | Fase 8 revisión final: navegación, textos unificados, aislamiento `GROUP_STAGE` en `fetchMatchesWithTeams` |
 | 2026-06 | Fase 9 cuadro de llaves: `/knockout`, `KnockoutBracket`, menú «Llaves» |
+| 2026-06 | Fase 10 ranking llaves desde octavos: vista `vw_ranking_cards_knockout`, resumen cartilla |
 
 ---
 

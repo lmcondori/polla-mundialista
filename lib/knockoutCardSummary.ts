@@ -1,6 +1,7 @@
 import {
   getKnockoutPhaseLabel,
   getKnockoutSideLabel,
+  isKnockoutOfficialRankingPhase,
   sortKnockoutMatchesByPhaseAndDate,
 } from '@/lib/knockoutMatches'
 import type {
@@ -39,6 +40,7 @@ export type KnockoutCardSummaryRow = {
   winner_flag_url: string | null
   points: number
   prediction_result: PredictionResultType
+  counts_for_official_ranking: boolean
 }
 
 export type KnockoutResultFilter = 'ALL' | PredictionResultType
@@ -143,24 +145,30 @@ export function buildKnockoutCardSummaryRows(
           winner_flag_url: realWinner?.flag_url ?? null,
           points: prediction.points,
           prediction_result: predictionResult,
+          counts_for_official_ranking: isKnockoutOfficialRankingPhase(match.phase),
         },
       ]
     })
 }
 
 export function buildKnockoutCardSummaryStats(rows: KnockoutCardSummaryRow[]) {
+  const officialRows = rows.filter((row) => row.counts_for_official_ranking)
+
   return {
-    totalPoints: rows.reduce((sum, row) => sum + (row.points ?? 0), 0),
-    exactScores: rows.filter((row) => row.prediction_result === 'SCORE_EXACTO')
-      .length,
-    resultHits: rows.filter(
+    totalPoints: officialRows.reduce((sum, row) => sum + (row.points ?? 0), 0),
+    exactScores: officialRows.filter(
+      (row) => row.prediction_result === 'SCORE_EXACTO'
+    ).length,
+    resultHits: officialRows.filter(
       (row) => row.prediction_result === 'RESULTADO_ACERTADO'
     ).length,
-    missed: rows.filter((row) => row.prediction_result === 'NO_ACERTADO').length,
-    pending: rows.filter(
+    missed: officialRows.filter(
+      (row) => row.prediction_result === 'NO_ACERTADO'
+    ).length,
+    pending: officialRows.filter(
       (row) => row.prediction_result === 'PENDIENTE_RESULTADO'
     ).length,
-    totalPredictions: rows.length,
+    totalPredictions: officialRows.length,
   }
 }
 

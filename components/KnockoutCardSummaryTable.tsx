@@ -116,7 +116,16 @@ export default function KnockoutCardSummaryTable({
                   )}
                 </td>
                 <td className="px-4 py-3 text-center font-semibold tabular-nums text-emerald-700">
-                  {row.points}
+                  {row.counts_for_official_ranking ? (
+                    row.points
+                  ) : (
+                    <span
+                      className="font-normal text-emerald-800/50"
+                      title="Fuera del puntaje oficial (16avos)"
+                    >
+                      —
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -192,7 +201,16 @@ export default function KnockoutCardSummaryTable({
               <div className="col-span-2 rounded-lg bg-emerald-50/80 p-2 text-center">
                 <dt className="text-emerald-700/70">Puntos</dt>
                 <dd className="mt-0.5 text-lg font-semibold tabular-nums text-emerald-700">
-                  {row.points}
+                  {row.counts_for_official_ranking ? (
+                    row.points
+                  ) : (
+                    <span
+                      className="text-sm font-normal text-emerald-800/50"
+                      title="Fuera del puntaje oficial (16avos)"
+                    >
+                      —
+                    </span>
+                  )}
                 </dd>
               </div>
             </dl>

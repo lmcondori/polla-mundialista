@@ -174,9 +174,9 @@ El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits`
 
 ### `vw_ranking_cards_knockout`
 
-Cartillas **ACTIVE** con `stage = 'KNOCKOUT_STAGE'` y métricas agregadas solo de partidos con `phase <> 'GROUP_STAGE'`.
+Cartillas **ACTIVE** con `stage = 'KNOCKOUT_STAGE'` y métricas agregadas solo de partidos desde **octavos** (`ROUND_OF_16`, `QUARTER_FINAL`, `SEMI_FINAL`, `THIRD_PLACE`, `FINAL`). `ROUND_OF_32` no suma.
 
-**Migración:** `supabase/migrations/003_knockout_functions_and_views.sql`
+**Migraciones:** `003_knockout_functions_and_views.sql`, `004_knockout_ranking_from_round_of_16.sql`
 
 | Columna | Descripción |
 |---------|-------------|
@@ -184,8 +184,8 @@ Cartillas **ACTIVE** con `stage = 'KNOCKOUT_STAGE'` y métricas agregadas solo d
 | `card_name` | Nombre |
 | `user_id` | Dueño |
 | `full_name` | Nombre del participante |
-| `total_points` | Suma de puntos (eliminatoria) |
-| `total_predictions` | Cantidad de pronósticos en partidos eliminatoria |
+| `total_points` | Suma de puntos (octavos a final) |
+| `total_predictions` | Cantidad de pronósticos oficiales (octavos a final) |
 | `exact_scores` | Cantidad con `points = 5` |
 | `result_hits` | Cantidad con `points = 3` |
 | `status` | Estado de cartilla (`ACTIVE`) |

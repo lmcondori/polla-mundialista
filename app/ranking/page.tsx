@@ -27,7 +27,7 @@ const RANKING_COPY: Record<
   KNOCKOUT_STAGE: {
     title: 'Ranking de llaves',
     description:
-      'Clasificación por puntos totales de cada cartilla de eliminatoria.',
+      'Clasificación oficial desde octavos de final. Los 16avos no suman al puntaje.',
     tableTitle: 'Tabla de llaves',
   },
 }

@@ -99,7 +99,7 @@ Imports con alias `@/` (ej. `@/lib/types`).
 | Vista pública | `vw_ranking_cards` + `vw_card_prediction_detail`; ocultar si `match_date > now` |
 | Admin | `role === 'admin'`; escritura sensible vía RPC |
 | Ranking grupos | Solo cartillas `ACTIVE` con `stage = 'GROUP_STAGE'` (`vw_ranking_cards`); orden: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc |
-| Ranking llaves | Cartillas `ACTIVE` con `stage = 'KNOCKOUT_STAGE'` (`vw_ranking_cards_knockout`); mismo orden que grupos |
+| Ranking llaves | Cartillas `ACTIVE` con `stage = 'KNOCKOUT_STAGE'` (`vw_ranking_cards_knockout`); mismo orden que grupos; **solo octavos en adelante** |
 | Puntaje grupos | Exacto = 5 · Resultado = 3 · Fallo = 0 |
 | Puntaje llaves | Exacto = 5 · Clasificado = 3 · Fallo = 0 (`save_knockout_match_result_and_recalculate`) |
 
@@ -154,7 +154,7 @@ FKs a equipos usan **`bigint`**, no `uuid`.
 | `matches` | `local_source_type`, `visitor_source_type` | `text` (`WINNER` \| `LOSER` \| NULL) |
 | `matches` | `winner_team_id`, `loser_team_id` | `bigint` → `teams.id` |
 
-Migraciones: `001_knockout_stage_schema.sql` · `002_seed_knockout_matches.sql` · `003_knockout_functions_and_views.sql`
+Migraciones: `001_knockout_stage_schema.sql` · `002_seed_knockout_matches.sql` · `003_knockout_functions_and_views.sql` · `004_knockout_ranking_from_round_of_16.sql`
 
 ### Columnas — usar siempre nombres reales
 
@@ -215,7 +215,7 @@ Lista completa: [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS
 ## Pendientes y fuera de alcance
 
 - Pendientes técnicos: tests, middleware auth, README — ver [docs/04_PENDIENTES_Y_CAMBIOS.md](./docs/04_PENDIENTES_Y_CAMBIOS.md).
-- **Etapa eliminatoria:** Fases 1–9 en repo (`feature/etapa-llaves`). Vista pública de cartillas de llaves (`/cards-public/[id]`) pendiente.
+- **Etapa eliminatoria:** Fases 1–10 en repo (`feature/etapa-llaves`). Vista pública de cartillas de llaves (`/cards-public/[id]`) pendiente.
 
 ---
 

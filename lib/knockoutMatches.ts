@@ -9,6 +9,22 @@ export const KNOCKOUT_TEAMS_PENDING_LABEL = 'Pendiente de definir equipos'
 export const KNOCKOUT_BRACKET_MATCH_NUMBER_MIN = 73
 export const KNOCKOUT_BRACKET_MATCH_NUMBER_MAX = 104
 
+/** Fases que suman al ranking y resumen oficial de puntaje de llaves (desde octavos). */
+export const KNOCKOUT_OFFICIAL_RANKING_PHASES = [
+  'ROUND_OF_16',
+  'QUARTER_FINAL',
+  'SEMI_FINAL',
+  'THIRD_PLACE',
+  'FINAL',
+] as const
+
+export type KnockoutOfficialRankingPhase =
+  (typeof KNOCKOUT_OFFICIAL_RANKING_PHASES)[number]
+
+export function isKnockoutOfficialRankingPhase(phase: string): boolean {
+  return (KNOCKOUT_OFFICIAL_RANKING_PHASES as readonly string[]).includes(phase)
+}
+
 const KNOCKOUT_PHASE_ORDER: KnockoutRound[] = [
   'ROUND_OF_32',
   'ROUND_OF_16',

@@ -271,7 +271,7 @@ export default function CardSummaryPage() {
           </div>
           <p className="mt-2 text-emerald-800/70">
             {isKnockout
-              ? 'Revisa el avance de tu cartilla de llaves y los puntos obtenidos por partido.'
+              ? 'Puntaje oficial desde octavos de final. Los pronósticos de 16avos se muestran abajo pero no suman al total.'
               : 'Revisa el avance de tu cartilla y los puntos obtenidos por partido.'}
           </p>
         </header>

@@ -36,7 +36,7 @@ Documento de referencia para decisiones de producto y validaciones. Cualquier ca
 | Cartillas existentes | Permanecen `GROUP_STAGE`; **no migrar** a llaves |
 | Cartillas de llaves | Nuevas cartillas con `stage = 'KNOCKOUT_STAGE'` |
 | Ranking grupos | Solo `ACTIVE` + `GROUP_STAGE` en `vw_ranking_cards` |
-| Ranking llaves | `ACTIVE` + `KNOCKOUT_STAGE` en `vw_ranking_cards_knockout`; pestaña «Llaves» en `/ranking` |
+| Ranking llaves | `ACTIVE` + `KNOCKOUT_STAGE` en `vw_ranking_cards_knockout`; pestaña «Llaves» en `/ranking`; **solo octavos en adelante** (`ROUND_OF_16` … `FINAL`) |
 
 ---
 
@@ -92,6 +92,8 @@ El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits`
 | Marcador exacto | **5** | Prioridad sobre acierto de clasificado |
 | Acierta equipo clasificado (sin marcador exacto) | **3** | `predicted_winner_team_id = winner_team_id` |
 | No acierta | **0** | Incluye partido sin `winner_team_id` registrado |
+
+**Ranking y resumen oficial de llaves:** el puntaje acumulado considera solo partidos desde **octavos de final** (`ROUND_OF_16`, `QUARTER_FINAL`, `SEMI_FINAL`, `THIRD_PLACE`, `FINAL`). Los **16avos** (`ROUND_OF_32`) permanecen en el fixture, pronósticos y cuadro gráfico, pero **no suman** al ranking ni al total de la cartilla de llaves.
 
 El participante pronostica marcador y `predicted_winner_team_id`. El admin registra marcador real, `winner_team_id` y `loser_team_id` (calculado) vía RPC `save_knockout_match_result_and_recalculate`. Puede haber empate en marcador; siempre debe existir un equipo clasificado.
 

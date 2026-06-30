@@ -191,7 +191,7 @@ flowchart LR
 - Solo cartillas `ACTIVE` (las vistas ya las filtran).
 - Cartillas `INACTIVE` no aparecen.
 - Pestaña «Fase de grupos»: `vw_ranking_cards` (sin cambios).
-- Pestaña «Llaves»: `vw_ranking_cards_knockout`; columna `result_hits` = aciertos de clasificado (puntos 3); sin enlace a vista pública (solo grupos).
+- Pestaña «Llaves»: `vw_ranking_cards_knockout`; solo octavos en adelante; columna `result_hits` = aciertos de clasificado (puntos 3); sin enlace a vista pública (solo grupos).
 - Orden oficial: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc (helper `lib/ranking.ts`).
 
 ---
