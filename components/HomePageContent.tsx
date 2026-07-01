@@ -4,11 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import HomeTodayMatchCard from '@/components/HomeTodayMatchCard'
 import Navbar from '@/components/Navbar'
-import { fetchHomeTodayMatches, type HomeTodayMatch } from '@/lib/homeTodayMatches'
+import { fetchHomeTodayMatches, isOfficialOpenPendingMatch, isOfficialPendingMatchToday, type HomeTodayMatch } from '@/lib/homeTodayMatches'
 import {
   getPeruDateKey,
   getTodayPeruDateKey,
-  isMatchPredictionClosed,
   sortMatchesByDateAsc,
 } from '@/lib/matchPrediction'
 import {
@@ -16,41 +15,60 @@ import {
   getPodiumRankedEntries,
 } from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
-import type { RankingEntryWithRank } from '@/lib/types'
+import type { CardStage, RankingEntryWithRank } from '@/lib/types'
+
+type ActiveCard = {
+  id: string
+  stage: CardStage
+}
 
 type PendingSummary = {
-  todayMatches: number
+  officialSlotsToday: number
   predicted: number
   pending: number
   activeCards: number
+  showRoundOf32Notice: boolean
+  showNoOfficialPendingMessage: boolean
 }
-
-const GROUP_STAGE_PHASE = 'GROUP_STAGE'
 
 function computePendingSummary(
   todayMatches: HomeTodayMatch[],
-  activeCardIds: string[],
+  activeCards: ActiveCard[],
   predictedPairs: Set<string>
 ): PendingSummary {
-  const openMatches = todayMatches.filter(
-    (match) => !isMatchPredictionClosed(match.match_date)
-  )
-  const totalSlots = activeCardIds.length * openMatches.length
+  let officialSlotsToday = 0
   let predicted = 0
 
-  for (const cardId of activeCardIds) {
-    for (const match of openMatches) {
-      if (predictedPairs.has(`${cardId}:${match.id}`)) {
+  for (const card of activeCards) {
+    for (const match of todayMatches) {
+      if (!isOfficialOpenPendingMatch(match, card.stage)) continue
+      officialSlotsToday += 1
+      if (predictedPairs.has(`${card.id}:${match.id}`)) {
         predicted += 1
       }
     }
   }
 
+  const hasAnyOfficialMatchToday = activeCards.some((card) =>
+    todayMatches.some((match) =>
+      isOfficialPendingMatchToday(match, card.stage)
+    )
+  )
+  const hasRoundOf32Today = todayMatches.some(
+    (match) => match.phase === 'ROUND_OF_32'
+  )
+
   return {
-    todayMatches: todayMatches.length,
+    officialSlotsToday,
     predicted,
-    pending: Math.max(0, totalSlots - predicted),
-    activeCards: activeCardIds.length,
+    pending: Math.max(0, officialSlotsToday - predicted),
+    activeCards: activeCards.length,
+    showRoundOf32Notice:
+      activeCards.length > 0 && !hasAnyOfficialMatchToday && hasRoundOf32Today,
+    showNoOfficialPendingMessage:
+      activeCards.length > 0 &&
+      officialSlotsToday === 0 &&
+      !hasAnyOfficialMatchToday,
   }
 }
 
@@ -102,33 +120,38 @@ export default function HomePageContent() {
     if (session?.user) {
       const { data: cardsData, error: cardsError } = await supabase
         .from('cards')
-        .select('id')
+        .select('id, stage')
         .eq('user_id', session.user.id)
         .eq('status', 'ACTIVE')
-        .or('stage.eq.GROUP_STAGE,stage.is.null')
 
       if (cardsError) {
         setError(cardsError.message)
         setPendingSummary(null)
       } else {
-        const activeCardIds = (cardsData ?? []).map((card) => card.id)
-        const openTodayIds = matchesToday
-          .filter(
-            (match) =>
-              match.phase === GROUP_STAGE_PHASE &&
-              !isMatchPredictionClosed(match.match_date)
-          )
-          .map((match) => match.id)
+        const activeCards: ActiveCard[] = (cardsData ?? []).map((card) => ({
+          id: String(card.id),
+          stage: (card.stage ?? 'GROUP_STAGE') as CardStage,
+        }))
+        const activeCardIds = activeCards.map((card) => card.id)
+        const officialOpenMatchIds = new Set<string>()
+
+        for (const card of activeCards) {
+          for (const match of matchesToday) {
+            if (isOfficialOpenPendingMatch(match, card.stage)) {
+              officialOpenMatchIds.add(match.id)
+            }
+          }
+        }
 
         let predictedPairs = new Set<string>()
 
-        if (activeCardIds.length > 0 && openTodayIds.length > 0) {
+        if (activeCardIds.length > 0 && officialOpenMatchIds.size > 0) {
           const { data: predictionsData, error: predictionsError } =
             await supabase
               .from('predictions')
               .select('card_id, match_id')
               .in('card_id', activeCardIds)
-              .in('match_id', openTodayIds)
+              .in('match_id', [...officialOpenMatchIds])
 
           if (predictionsError) {
             setError(predictionsError.message)
@@ -142,7 +165,7 @@ export default function HomePageContent() {
         }
 
         setPendingSummary(
-          computePendingSummary(matchesToday, activeCardIds, predictedPairs)
+          computePendingSummary(matchesToday, activeCards, predictedPairs)
         )
       }
     } else {
@@ -258,30 +281,55 @@ export default function HomePageContent() {
                     para pronosticar.
                   </p>
                 ) : (
-                  <dl className="mb-5 grid grid-cols-3 gap-3 text-center">
-                    <div className="rounded-lg bg-emerald-50/80 p-3">
-                      <dt className="text-xs text-emerald-700/70">
-                        Partidos de hoy
-                      </dt>
-                      <dd className="mt-1 text-2xl font-bold tabular-nums text-emerald-900">
-                        {pendingSummary.todayMatches}
-                      </dd>
-                    </div>
-                    <div className="rounded-lg bg-emerald-50/80 p-3">
-                      <dt className="text-xs text-emerald-700/70">
-                        Pronosticados
-                      </dt>
-                      <dd className="mt-1 text-2xl font-bold tabular-nums text-emerald-700">
-                        {pendingSummary.predicted}
-                      </dd>
-                    </div>
-                    <div className="rounded-lg bg-amber-50/80 p-3">
-                      <dt className="text-xs text-amber-800/70">Pendientes</dt>
-                      <dd className="mt-1 text-2xl font-bold tabular-nums text-amber-900">
-                        {pendingSummary.pending}
-                      </dd>
-                    </div>
-                  </dl>
+                  <>
+                    <dl className="mb-5 grid grid-cols-3 gap-3 text-center">
+                      <div className="rounded-lg bg-emerald-50/80 p-3">
+                        <dt className="text-xs text-emerald-700/70">
+                          Pronósticos oficiales de hoy
+                        </dt>
+                        <dd className="mt-1 text-2xl font-bold tabular-nums text-emerald-900">
+                          {pendingSummary.officialSlotsToday}
+                        </dd>
+                      </div>
+                      <div className="rounded-lg bg-emerald-50/80 p-3">
+                        <dt className="text-xs text-emerald-700/70">
+                          Pronosticados
+                        </dt>
+                        <dd className="mt-1 text-2xl font-bold tabular-nums text-emerald-700">
+                          {pendingSummary.predicted}
+                        </dd>
+                      </div>
+                      <div className="rounded-lg bg-amber-50/80 p-3">
+                        <dt className="text-xs text-amber-800/70">
+                          Pendientes
+                        </dt>
+                        <dd className="mt-1 text-2xl font-bold tabular-nums text-amber-900">
+                          {pendingSummary.pending}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    {pendingSummary.showRoundOf32Notice && (
+                      <p className="mb-4 text-sm text-emerald-800/80">
+                        Los 16avos se muestran como referencia y no cuentan para
+                        el ranking oficial de llaves.
+                      </p>
+                    )}
+
+                    {pendingSummary.showNoOfficialPendingMessage &&
+                      !pendingSummary.showRoundOf32Notice && (
+                        <p className="mb-4 text-sm text-emerald-800/80">
+                          No tienes pronósticos oficiales pendientes para hoy.
+                        </p>
+                      )}
+
+                    {pendingSummary.pending === 0 &&
+                      pendingSummary.officialSlotsToday > 0 && (
+                        <p className="mb-4 text-sm text-emerald-800/80">
+                          Ya completaste tus pronósticos oficiales de hoy.
+                        </p>
+                      )}
+                  </>
                 )}
 
                 <Link

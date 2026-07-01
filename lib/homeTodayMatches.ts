@@ -1,6 +1,7 @@
-import { getKnockoutPhaseLabel, getKnockoutSideLabel } from '@/lib/knockoutMatches'
+import { getKnockoutPhaseLabel, getKnockoutSideLabel, isKnockoutOfficialRankingPhase } from '@/lib/knockoutMatches'
+import { isMatchPredictionClosed } from '@/lib/matchPrediction'
 import { supabase } from '@/lib/supabaseClient'
-import type { KnockoutMatchWithTeams, Team } from '@/lib/types'
+import type { CardStage, KnockoutMatchWithTeams, Team } from '@/lib/types'
 
 export type HomeTodayMatch = {
   id: string
@@ -138,6 +139,29 @@ export function getHomeTodayMatchPhaseLabel(match: HomeTodayMatch): string | nul
   if (match.group_name) return `Grupo ${match.group_name}`
   if (match.phase !== 'GROUP_STAGE') return getKnockoutPhaseLabel(match.phase)
   return null
+}
+
+/** Partido abierto que cuenta como pendiente oficial para la etapa de la cartilla. */
+export function isOfficialOpenPendingMatch(
+  match: HomeTodayMatch,
+  cardStage: CardStage
+): boolean {
+  if (isMatchPredictionClosed(match.match_date)) return false
+  if (cardStage === 'KNOCKOUT_STAGE') {
+    return isKnockoutOfficialRankingPhase(match.phase)
+  }
+  return match.phase === 'GROUP_STAGE'
+}
+
+/** Partido de hoy que es oficial para la etapa de la cartilla (abierto o cerrado). */
+export function isOfficialPendingMatchToday(
+  match: HomeTodayMatch,
+  cardStage: CardStage
+): boolean {
+  if (cardStage === 'KNOCKOUT_STAGE') {
+    return isKnockoutOfficialRankingPhase(match.phase)
+  }
+  return match.phase === 'GROUP_STAGE'
 }
 
 export async function fetchHomeTodayMatches(): Promise<{
