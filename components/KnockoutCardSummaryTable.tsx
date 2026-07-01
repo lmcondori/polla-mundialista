@@ -128,11 +128,18 @@ export default function KnockoutCardSummaryTable({
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getKnockoutPredictionResultBadgeClass(row.prediction_result)}`}
-                  >
-                    {getKnockoutPredictionResultLabel(row.prediction_result)}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getKnockoutPredictionResultBadgeClass(row.prediction_result)}`}
+                    >
+                      {getKnockoutPredictionResultLabel(row.prediction_result)}
+                    </span>
+                    {!row.counts_for_official_ranking && (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                        Fuera del puntaje oficial
+                      </span>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -160,6 +167,11 @@ export default function KnockoutCardSummaryTable({
               >
                 {getKnockoutPredictionResultLabel(row.prediction_result)}
               </span>
+              {!row.counts_for_official_ranking && (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                  Fuera del puntaje oficial
+                </span>
+              )}
             </div>
 
             <div className="mb-3 space-y-2">

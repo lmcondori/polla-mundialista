@@ -152,7 +152,7 @@ export function buildKnockoutCardSummaryRows(
 }
 
 export function buildKnockoutCardSummaryStats(rows: KnockoutCardSummaryRow[]) {
-  const officialRows = rows.filter((row) => row.counts_for_official_ranking)
+  const officialRows = getKnockoutOfficialSummaryRows(rows)
 
   return {
     totalPoints: officialRows.reduce((sum, row) => sum + (row.points ?? 0), 0),
@@ -170,6 +170,12 @@ export function buildKnockoutCardSummaryStats(rows: KnockoutCardSummaryRow[]) {
     ).length,
     totalPredictions: officialRows.length,
   }
+}
+
+export function getKnockoutOfficialSummaryRows(
+  rows: KnockoutCardSummaryRow[]
+): KnockoutCardSummaryRow[] {
+  return rows.filter((row) => row.counts_for_official_ranking)
 }
 
 export const KNOCKOUT_PREDICTION_RESULT_FILTERS: {

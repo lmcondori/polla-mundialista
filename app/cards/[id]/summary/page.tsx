@@ -25,10 +25,15 @@ import { sortMatchesByDateAsc } from '@/lib/matchPrediction'
 import { supabase } from '@/lib/supabaseClient'
 import type { CardPredictionDetail, CardStage } from '@/lib/types'
 
+function resolveCardId(rawId: string | string[] | undefined): string {
+  if (Array.isArray(rawId)) return rawId[0] ?? ''
+  return rawId ?? ''
+}
+
 export default function CardSummaryPage() {
   const router = useRouter()
   const params = useParams()
-  const cardId = params.id as string
+  const cardId = resolveCardId(params.id)
 
   const [cardStage, setCardStage] = useState<CardStage>('GROUP_STAGE')
   const [groupRows, setGroupRows] = useState<CardPredictionDetail[]>([])
@@ -39,6 +44,7 @@ export default function CardSummaryPage() {
   const [cardStatus, setCardStatus] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [accessDenied, setAccessDenied] = useState(false)
   const [groupResultFilter, setGroupResultFilter] =
     useState<PredictionResultFilter>('ALL')
   const [knockoutResultFilter, setKnockoutResultFilter] =
@@ -93,77 +99,99 @@ export default function CardSummaryPage() {
   }, [cardId])
 
   const loadKnockoutSummary = useCallback(async () => {
-    const [matchesResult, predictionsResult] = await Promise.all([
-      fetchKnockoutMatchesWithTeams(),
-      supabase
-        .from('predictions')
-        .select(
-          'id, card_id, match_id, local_score_predicted, visitor_score_predicted, predicted_winner_team_id, points'
-        )
-        .eq('card_id', cardId),
-    ])
+    try {
+      const [matchesResult, predictionsResult] = await Promise.all([
+        fetchKnockoutMatchesWithTeams(),
+        supabase
+          .from('predictions')
+          .select(
+            'id, card_id, match_id, local_score_predicted, visitor_score_predicted, predicted_winner_team_id, points'
+          )
+          .eq('card_id', cardId),
+      ])
 
-    if (matchesResult.error) {
-      return { error: matchesResult.error }
+      if (matchesResult.error) {
+        return { error: matchesResult.error }
+      }
+
+      if (predictionsResult.error) {
+        return { error: predictionsResult.error.message }
+      }
+
+      const predictions = (predictionsResult.data ?? []) as KnockoutPredictionRow[]
+      setKnockoutRows(
+        buildKnockoutCardSummaryRows(predictions, matchesResult.data)
+      )
+      return { error: null }
+    } catch (loadError) {
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : 'No se pudo cargar el resumen de llaves.'
+      return { error: message }
     }
-
-    if (predictionsResult.error) {
-      return { error: predictionsResult.error.message }
-    }
-
-    const predictions = (predictionsResult.data ?? []) as KnockoutPredictionRow[]
-    setKnockoutRows(
-      buildKnockoutCardSummaryRows(predictions, matchesResult.data)
-    )
-    return { error: null }
   }, [cardId])
 
   const loadData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    if (!session?.user) {
-      router.replace('/login')
-      return
-    }
-
-    const { data: cardData, error: cardError } = await supabase
-      .from('cards')
-      .select('id, card_name, user_id, stage, status')
-      .eq('id', cardId)
-      .eq('user_id', session.user.id)
-      .maybeSingle()
-
-    if (cardError) {
-      setError(cardError.message)
+    if (!cardId) {
+      setAccessDenied(true)
       setLoading(false)
       return
     }
 
-    if (!cardData) {
-      router.replace('/dashboard')
-      return
+    setLoading(true)
+    setError(null)
+    setAccessDenied(false)
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.user) {
+        router.replace('/login')
+        return
+      }
+
+      const { data: cardData, error: cardError } = await supabase
+        .from('cards')
+        .select('id, card_name, user_id, stage, status')
+        .eq('id', cardId)
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+
+      if (cardError) {
+        setError(cardError.message)
+        return
+      }
+
+      if (!cardData) {
+        setAccessDenied(true)
+        return
+      }
+
+      const stage = (cardData.stage ?? 'GROUP_STAGE') as CardStage
+      setCardStage(stage)
+      setCardName(cardData.card_name)
+      setCardStatus(cardData.status ?? 'ACTIVE')
+
+      const summaryResult =
+        stage === 'KNOCKOUT_STAGE'
+          ? await loadKnockoutSummary()
+          : await loadGroupSummary()
+
+      if (summaryResult.error) {
+        setError(summaryResult.error)
+      }
+    } catch (loadError) {
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : 'No se pudo cargar el resumen de la cartilla.'
+      setError(message)
+    } finally {
+      setLoading(false)
     }
-
-    const stage = (cardData.stage ?? 'GROUP_STAGE') as CardStage
-    setCardStage(stage)
-    setCardName(cardData.card_name)
-    setCardStatus(cardData.status ?? 'ACTIVE')
-
-    const summaryResult =
-      stage === 'KNOCKOUT_STAGE'
-        ? await loadKnockoutSummary()
-        : await loadGroupSummary()
-
-    if (summaryResult.error) {
-      setError(summaryResult.error)
-    }
-
-    setLoading(false)
   }, [cardId, loadGroupSummary, loadKnockoutSummary, router])
 
   useEffect(() => {
@@ -205,6 +233,29 @@ export default function CardSummaryPage() {
     return (
       <div className="flex min-h-full items-center justify-center bg-emerald-50">
         <p className="text-emerald-800">Cargando resumen…</p>
+      </div>
+    )
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="flex min-h-full flex-col bg-gradient-to-b from-emerald-50 to-white">
+        <Navbar showAuthLinks={false} onLogout={handleLogout} />
+        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-4 py-16 text-center">
+          <h1 className="text-xl font-semibold text-emerald-950">
+            Cartilla no disponible
+          </h1>
+          <p className="mt-2 max-w-md text-sm text-emerald-800/80">
+            No encontramos esta cartilla en tu cuenta o no tienes permiso para
+            ver su resumen.
+          </p>
+          <Link
+            href="/dashboard"
+            className="mt-6 inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
+          >
+            Volver al dashboard
+          </Link>
+        </main>
       </div>
     )
   }
@@ -295,6 +346,10 @@ export default function CardSummaryPage() {
           resultHitsLabel={
             isKnockout ? 'Aciertos de clasificado' : undefined
           }
+          totalPointsLabel={isKnockout ? 'Puntos oficiales' : undefined}
+          totalPredictionsLabel={
+            isKnockout ? 'Pronósticos oficiales' : undefined
+          }
         />
 
         <section className="mb-6 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
@@ -324,6 +379,12 @@ export default function CardSummaryPage() {
             Mostrando{' '}
             <span className="font-semibold">{filteredCount}</span> de{' '}
             <span className="font-semibold">{totalRows}</span> pronósticos
+            {isKnockout && totalRows > stats.totalPredictions ? (
+              <span className="text-emerald-700/70">
+                {' '}
+                ({stats.totalPredictions} cuentan para el puntaje oficial)
+              </span>
+            ) : null}
           </p>
         </section>
 
