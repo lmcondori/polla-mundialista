@@ -3,23 +3,38 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
+import KnockoutCardSummaryTable from '@/components/KnockoutCardSummaryTable'
 import Navbar from '@/components/Navbar'
 import PublicCardSummaryStats from '@/components/PublicCardSummaryStats'
 import PublicCardSummaryTable from '@/components/PublicCardSummaryTable'
+import {
+  buildKnockoutCardSummaryRows,
+  type KnockoutCardSummaryRow,
+  type KnockoutPredictionRow,
+} from '@/lib/knockoutCardSummary'
+import { fetchKnockoutMatchesWithTeams } from '@/lib/knockoutMatches'
 import { sortMatchesByDateAsc } from '@/lib/matchPrediction'
+import { RANKING_ENTRY_SELECT } from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
-import type { CardPredictionDetail, RankingEntry } from '@/lib/types'
+import type { CardPredictionDetail, CardStage, RankingEntry } from '@/lib/types'
 
 const NOT_FOUND_MESSAGE =
   'No se encontró la cartilla o no está habilitada para participar.'
+
+const EMPTY_PREDICTIONS_MESSAGE =
+  'Esta cartilla aún no tiene pronósticos registrados.'
+
+const RANKING_CARD_SELECT = `${RANKING_ENTRY_SELECT}, status`
 
 export default function PublicCardDetailPage() {
   const router = useRouter()
   const params = useParams()
   const cardId = params.id as string
 
+  const [cardStage, setCardStage] = useState<CardStage>('GROUP_STAGE')
   const [rankingCard, setRankingCard] = useState<RankingEntry | null>(null)
-  const [rows, setRows] = useState<CardPredictionDetail[]>([])
+  const [groupRows, setGroupRows] = useState<CardPredictionDetail[]>([])
+  const [knockoutRows, setKnockoutRows] = useState<KnockoutCardSummaryRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
@@ -30,43 +45,24 @@ export default function PublicCardDetailPage() {
     router.refresh()
   }, [router])
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    setNotFound(false)
-    setRankingCard(null)
-    setRows([])
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    if (!session?.user) {
-      router.replace('/login')
-      return
-    }
-
+  const loadGroupDetail = useCallback(async (): Promise<boolean> => {
     const { data: rankingData, error: rankingError } = await supabase
       .from('vw_ranking_cards')
-      .select(
-        'card_id, card_name, user_id, full_name, total_points, total_predictions, exact_scores, result_hits, status'
-      )
+      .select(RANKING_CARD_SELECT)
       .eq('card_id', cardId)
       .maybeSingle()
 
     if (rankingError) {
       setError(rankingError.message)
-      setLoading(false)
-      return
+      return true
     }
 
     if (!rankingData) {
-      setNotFound(true)
-      setLoading(false)
-      return
+      return false
     }
 
     const card = rankingData as RankingEntry
+    setCardStage('GROUP_STAGE')
     setRankingCard(card)
 
     const { data, error: viewError } = await supabase
@@ -102,13 +98,92 @@ export default function PublicCardDetailPage() {
 
     if (viewError) {
       setError(viewError.message)
-      setLoading(false)
+      return true
+    }
+
+    setGroupRows((data ?? []) as CardPredictionDetail[])
+    return true
+  }, [cardId])
+
+  const loadKnockoutDetail = useCallback(async () => {
+    const { data: rankingData, error: rankingError } = await supabase
+      .from('vw_ranking_cards_knockout')
+      .select(RANKING_CARD_SELECT)
+      .eq('card_id', cardId)
+      .maybeSingle()
+
+    if (rankingError) {
+      setError(rankingError.message)
       return
     }
 
-    setRows((data ?? []) as CardPredictionDetail[])
+    if (!rankingData) {
+      setNotFound(true)
+      return
+    }
+
+    const card = rankingData as RankingEntry
+    setCardStage('KNOCKOUT_STAGE')
+    setRankingCard(card)
+
+    try {
+      const [matchesResult, predictionsResult] = await Promise.all([
+        fetchKnockoutMatchesWithTeams(),
+        supabase
+          .from('predictions')
+          .select(
+            'id, card_id, match_id, local_score_predicted, visitor_score_predicted, predicted_winner_team_id, points'
+          )
+          .eq('card_id', cardId),
+      ])
+
+      if (matchesResult.error) {
+        setError(matchesResult.error)
+        return
+      }
+
+      if (predictionsResult.error) {
+        setError(predictionsResult.error.message)
+        return
+      }
+
+      const predictions = (predictionsResult.data ?? []) as KnockoutPredictionRow[]
+      setKnockoutRows(
+        buildKnockoutCardSummaryRows(predictions, matchesResult.data)
+      )
+    } catch (loadError) {
+      const message =
+        loadError instanceof Error
+          ? loadError.message
+          : 'No se pudo cargar el detalle de la cartilla de llaves.'
+      setError(message)
+    }
+  }, [cardId])
+
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    setNotFound(false)
+    setRankingCard(null)
+    setGroupRows([])
+    setKnockoutRows([])
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session?.user) {
+      router.replace('/login')
+      return
+    }
+
+    const loadedGroup = await loadGroupDetail()
+    if (!loadedGroup) {
+      await loadKnockoutDetail()
+    }
+
     setLoading(false)
-  }, [cardId, router])
+  }, [loadGroupDetail, loadKnockoutDetail, router])
 
   useEffect(() => {
     loadData()
@@ -124,7 +199,12 @@ export default function PublicCardDetailPage() {
     return () => subscription.unsubscribe()
   }, [loadData, router])
 
-  const sortedRows = useMemo(() => sortMatchesByDateAsc(rows), [rows])
+  const sortedGroupRows = useMemo(
+    () => sortMatchesByDateAsc(groupRows),
+    [groupRows]
+  )
+
+  const isKnockout = cardStage === 'KNOCKOUT_STAGE'
 
   if (loading) {
     return (
@@ -153,9 +233,16 @@ export default function PublicCardDetailPage() {
         ) : rankingCard ? (
           <>
             <header className="mb-6">
-              <h1 className="text-2xl font-bold text-emerald-950 sm:text-3xl">
-                {rankingCard.card_name}
-              </h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold text-emerald-950 sm:text-3xl">
+                  {rankingCard.card_name}
+                </h1>
+                {isKnockout && (
+                  <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
+                    Etapa de llaves
+                  </span>
+                )}
+              </div>
               <p className="mt-2 text-emerald-800">
                 Participante:{' '}
                 <span className="font-semibold text-emerald-950">
@@ -166,6 +253,13 @@ export default function PublicCardDetailPage() {
                 Vista pública de la cartilla. Los pronósticos de partidos futuros
                 permanecen ocultos hasta su inicio.
               </p>
+              {isKnockout && (
+                <p className="mt-2 text-sm text-emerald-800/70">
+                  Puntaje oficial desde octavos de final. Los pronósticos de
+                  16avos se muestran abajo marcados como fuera del puntaje
+                  oficial.
+                </p>
+              )}
             </header>
 
             {error && (
@@ -182,8 +276,24 @@ export default function PublicCardDetailPage() {
               exactScores={rankingCard.exact_scores ?? 0}
               resultHits={rankingCard.result_hits ?? 0}
               totalPredictions={rankingCard.total_predictions ?? 0}
+              resultHitsLabel={
+                isKnockout ? 'Aciertos de clasificado' : undefined
+              }
+              totalPointsLabel={isKnockout ? 'Puntos oficiales' : undefined}
+              totalPredictionsLabel={
+                isKnockout ? 'Pronósticos oficiales' : undefined
+              }
             />
-            <PublicCardSummaryTable rows={sortedRows} />
+
+            {isKnockout ? (
+              <KnockoutCardSummaryTable
+                rows={knockoutRows}
+                publicView
+                emptyMessage={EMPTY_PREDICTIONS_MESSAGE}
+              />
+            ) : (
+              <PublicCardSummaryTable rows={sortedGroupRows} />
+            )}
           </>
         ) : null}
       </main>

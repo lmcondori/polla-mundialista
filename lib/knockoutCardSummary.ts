@@ -41,6 +41,7 @@ export type KnockoutCardSummaryRow = {
   points: number
   prediction_result: PredictionResultType
   counts_for_official_ranking: boolean
+  match_date: string
 }
 
 export type KnockoutResultFilter = 'ALL' | PredictionResultType
@@ -146,6 +147,7 @@ export function buildKnockoutCardSummaryRows(
           points: prediction.points,
           prediction_result: predictionResult,
           counts_for_official_ranking: isKnockoutOfficialRankingPhase(match.phase),
+          match_date: match.match_date,
         },
       ]
     })

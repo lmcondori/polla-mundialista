@@ -3,9 +3,12 @@ type PublicCardSummaryStatsProps = {
   exactScores: number
   resultHits: number
   totalPredictions: number
+  resultHitsLabel?: string
+  totalPointsLabel?: string
+  totalPredictionsLabel?: string
 }
 
-const ITEMS = [
+const BASE_ITEMS = [
   { key: 'totalPoints', label: 'Puntos totales' },
   { key: 'exactScores', label: 'Scores exactos' },
   { key: 'resultHits', label: 'Aciertos de resultado' },
@@ -17,12 +20,27 @@ export default function PublicCardSummaryStats({
   exactScores,
   resultHits,
   totalPredictions,
+  resultHitsLabel,
+  totalPointsLabel,
+  totalPredictionsLabel,
 }: PublicCardSummaryStatsProps) {
+  const items = BASE_ITEMS.map((item) => {
+    if (item.key === 'resultHits' && resultHitsLabel) {
+      return { ...item, label: resultHitsLabel }
+    }
+    if (item.key === 'totalPoints' && totalPointsLabel) {
+      return { ...item, label: totalPointsLabel }
+    }
+    if (item.key === 'totalPredictions' && totalPredictionsLabel) {
+      return { ...item, label: totalPredictionsLabel }
+    }
+    return item
+  })
   const values = { totalPoints, exactScores, resultHits, totalPredictions }
 
   return (
     <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-      {ITEMS.map((item) => (
+      {items.map((item) => (
         <div
           key={item.key}
           className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm"

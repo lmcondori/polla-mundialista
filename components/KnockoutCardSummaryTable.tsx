@@ -7,11 +7,57 @@ import {
 
 type KnockoutCardSummaryTableProps = {
   rows: KnockoutCardSummaryRow[]
+  publicView?: boolean
+  emptyMessage?: string
+}
+
+const HIDDEN_PREDICTION_TEXT =
+  'Pronóstico oculto hasta el inicio del partido'
+
+function isMatchStarted(matchDateIso: string): boolean {
+  return new Date(matchDateIso) <= new Date()
 }
 
 function formatScore(local: number | null, visitor: number | null): string {
   if (local === null || visitor === null) return 'Pendiente de resultado'
   return `${local} - ${visitor}`
+}
+
+function renderPredictedScore(
+  row: KnockoutCardSummaryRow,
+  publicView: boolean
+): string {
+  if (publicView && !isMatchStarted(row.match_date)) {
+    return HIDDEN_PREDICTION_TEXT
+  }
+  return formatScore(row.local_score_predicted, row.visitor_score_predicted)
+}
+
+function renderPredictedWinner(
+  row: KnockoutCardSummaryRow,
+  publicView: boolean
+): string {
+  if (publicView && !isMatchStarted(row.match_date)) {
+    return HIDDEN_PREDICTION_TEXT
+  }
+  return row.predicted_winner_label
+}
+
+function renderPoints(row: KnockoutCardSummaryRow, publicView: boolean) {
+  if (publicView && !isMatchStarted(row.match_date)) {
+    return <span className="text-emerald-800/50">—</span>
+  }
+  if (!row.counts_for_official_ranking) {
+    return (
+      <span
+        className="font-normal text-emerald-800/50"
+        title="Fuera del puntaje oficial (16avos)"
+      >
+        —
+      </span>
+    )
+  }
+  return row.points
 }
 
 function TeamCell({
@@ -33,13 +79,13 @@ function TeamCell({
 
 export default function KnockoutCardSummaryTable({
   rows,
+  publicView = false,
+  emptyMessage = 'No hay partidos que coincidan con el filtro seleccionado.',
 }: KnockoutCardSummaryTableProps) {
   if (rows.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 px-6 py-12 text-center">
-        <p className="text-emerald-800/80">
-          No hay partidos que coincidan con el filtro seleccionado.
-        </p>
+        <p className="text-emerald-800/80">{emptyMessage}</p>
       </div>
     )
   }
@@ -90,17 +136,32 @@ export default function KnockoutCardSummaryTable({
                     flagUrl={row.visitor_flag_url}
                   />
                 </td>
-                <td className="px-4 py-3 text-center tabular-nums text-emerald-900">
-                  {formatScore(
-                    row.local_score_predicted,
-                    row.visitor_score_predicted
+                <td className="px-4 py-3 text-center text-emerald-900">
+                  {publicView && !isMatchStarted(row.match_date) ? (
+                    <span className="text-xs italic text-emerald-700/70">
+                      {HIDDEN_PREDICTION_TEXT}
+                    </span>
+                  ) : (
+                    <span className="tabular-nums">
+                      {formatScore(
+                        row.local_score_predicted,
+                        row.visitor_score_predicted
+                      )}
+                    </span>
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <TeamCell
-                    label={row.predicted_winner_label}
-                    flagUrl={row.predicted_winner_flag_url}
-                  />
+                  {publicView &&
+                  !isMatchStarted(row.match_date) ? (
+                    <span className="text-xs italic text-emerald-700/70">
+                      {HIDDEN_PREDICTION_TEXT}
+                    </span>
+                  ) : (
+                    <TeamCell
+                      label={row.predicted_winner_label}
+                      flagUrl={row.predicted_winner_flag_url}
+                    />
+                  )}
                 </td>
                 <td className="px-4 py-3 text-center tabular-nums text-emerald-900">
                   {formatScore(row.local_score_real, row.visitor_score_real)}
@@ -116,16 +177,7 @@ export default function KnockoutCardSummaryTable({
                   )}
                 </td>
                 <td className="px-4 py-3 text-center font-semibold tabular-nums text-emerald-700">
-                  {row.counts_for_official_ranking ? (
-                    row.points
-                  ) : (
-                    <span
-                      className="font-normal text-emerald-800/50"
-                      title="Fuera del puntaje oficial (16avos)"
-                    >
-                      —
-                    </span>
-                  )}
+                  {renderPoints(row, publicView)}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -186,16 +238,13 @@ export default function KnockoutCardSummaryTable({
               <div className="rounded-lg bg-emerald-50/80 p-2">
                 <dt className="text-emerald-700/70">Pronóstico</dt>
                 <dd className="mt-0.5 font-semibold tabular-nums text-emerald-900">
-                  {formatScore(
-                    row.local_score_predicted,
-                    row.visitor_score_predicted
-                  )}
+                  {renderPredictedScore(row, publicView)}
                 </dd>
               </div>
               <div className="rounded-lg bg-emerald-50/80 p-2">
                 <dt className="text-emerald-700/70">Clasificado pronosticado</dt>
                 <dd className="mt-0.5 font-medium text-emerald-900">
-                  {row.predicted_winner_label}
+                  {renderPredictedWinner(row, publicView)}
                 </dd>
               </div>
               <div className="rounded-lg bg-emerald-50/80 p-2">
@@ -213,16 +262,7 @@ export default function KnockoutCardSummaryTable({
               <div className="col-span-2 rounded-lg bg-emerald-50/80 p-2 text-center">
                 <dt className="text-emerald-700/70">Puntos</dt>
                 <dd className="mt-0.5 text-lg font-semibold tabular-nums text-emerald-700">
-                  {row.counts_for_official_ranking ? (
-                    row.points
-                  ) : (
-                    <span
-                      className="text-sm font-normal text-emerald-800/50"
-                      title="Fuera del puntaje oficial (16avos)"
-                    >
-                      —
-                    </span>
-                  )}
+                  {renderPoints(row, publicView)}
                 </dd>
               </div>
             </dl>
