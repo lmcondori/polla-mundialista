@@ -10,6 +10,7 @@ type PodiumPlace = 1 | 2 | 3
 
 type PodiumGroup = {
   place: PodiumPlace
+  totalPoints: number
   entries: RankingEntryWithRank[]
 }
 
@@ -57,24 +58,20 @@ function buildPodiumGroups(entries: RankingEntry[]): PodiumGroup[] {
   for (const place of [1, 2, 3] as const) {
     const placeEntries = podiumEntries.filter((entry) => entry.rank === place)
     if (placeEntries.length > 0) {
-      groups.push({ place, entries: placeEntries })
+      groups.push({
+        place,
+        totalPoints: placeEntries[0]?.total_points ?? 0,
+        entries: placeEntries,
+      })
     }
   }
 
   return groups
 }
 
-function PodiumCard({
-  place,
-  entry,
-}: {
-  place: PodiumPlace
-  entry: RankingEntryWithRank
-}) {
-  if (!entry) return null
-
-  const config = PLACE_CONFIG[place]
-  const isFirst = place === 1
+function PodiumCard({ group }: { group: PodiumGroup }) {
+  const config = PLACE_CONFIG[group.place]
+  const isFirst = group.place === 1
 
   return (
     <article
@@ -93,22 +90,7 @@ function PodiumCard({
           {config.label}
         </span>
 
-        <h3
-          className={`truncate font-bold text-emerald-950 ${
-            isFirst ? 'text-base sm:text-lg' : 'text-sm sm:text-base'
-          }`}
-          title={entry.card_name}
-        >
-          {entry.card_name}
-        </h3>
-        <p
-          className="mt-1 truncate text-xs text-emerald-800/75 sm:text-sm"
-          title={entry.full_name}
-        >
-          {entry.full_name}
-        </p>
-
-        <div className="mt-4 border-t border-emerald-100/80 pt-3">
+        <div className="mb-4">
           <p className="text-[10px] font-medium uppercase tracking-wider text-emerald-700/60">
             Puntos
           </p>
@@ -117,9 +99,34 @@ function PodiumCard({
               isFirst ? 'text-3xl sm:text-4xl' : 'text-2xl'
             } ${config.points}`}
           >
-            {entry.total_points}
+            {group.totalPoints}
           </p>
         </div>
+
+        <ul className="space-y-2.5 border-t border-emerald-100/80 pt-3 text-left">
+          {group.entries.map((entry) => {
+            if (!entry) return null
+
+            return (
+              <li key={entry.card_id} className="min-w-0">
+                <p
+                  className={`truncate font-bold text-emerald-950 ${
+                    isFirst ? 'text-sm sm:text-base' : 'text-sm'
+                  }`}
+                  title={entry.card_name}
+                >
+                  {entry.card_name}
+                </p>
+                <p
+                  className="truncate text-xs text-emerald-800/75"
+                  title={entry.full_name}
+                >
+                  {entry.full_name}
+                </p>
+              </li>
+            )
+          })}
+        </ul>
       </div>
 
       <div
@@ -127,22 +134,6 @@ function PodiumCard({
         aria-hidden
       />
     </article>
-  )
-}
-
-function PodiumColumn({ group }: { group: PodiumGroup }) {
-  const isFirst = group.place === 1
-
-  return (
-    <div
-      className={`flex w-full flex-col items-end gap-3 ${
-        isFirst ? 'sm:max-w-[14rem]' : 'sm:max-w-[12rem]'
-      }`}
-    >
-      {group.entries.map((entry) => (
-        <PodiumCard key={entry.card_id} place={group.place} entry={entry} />
-      ))}
-    </div>
   )
 }
 
@@ -165,25 +156,25 @@ export default function RankingPodium({ entries }: RankingPodiumProps) {
         </p>
       ) : columnCount === 1 && first ? (
         <div className="mx-auto max-w-xs">
-          <PodiumColumn group={first} />
+          <PodiumCard group={first} />
         </div>
       ) : columnCount === 2 && first && second ? (
         <div className="mx-auto flex max-w-2xl items-end justify-center gap-4 sm:gap-8">
-          <div className="w-[42%] max-w-[9.5rem] sm:max-w-[10rem]">
-            <PodiumColumn group={second} />
+          <div className="w-[42%] max-w-[9.5rem] sm:max-w-[11rem]">
+            <PodiumCard group={second} />
           </div>
-          <div className="w-[48%] max-w-[11rem] sm:max-w-[12rem]">
-            <PodiumColumn group={first} />
+          <div className="w-[48%] max-w-[11rem] sm:max-w-[13rem]">
+            <PodiumCard group={first} />
           </div>
         </div>
       ) : (
         <div className="mx-auto grid max-w-4xl grid-cols-1 items-end gap-4 sm:grid-cols-3 sm:gap-4">
           <div className={second ? '' : 'hidden sm:block'}>
-            {second ? <PodiumColumn group={second} /> : null}
+            {second ? <PodiumCard group={second} /> : null}
           </div>
-          <div>{first ? <PodiumColumn group={first} /> : null}</div>
+          <div>{first ? <PodiumCard group={first} /> : null}</div>
           <div className={third ? '' : 'hidden sm:block'}>
-            {third ? <PodiumColumn group={third} /> : null}
+            {third ? <PodiumCard group={third} /> : null}
           </div>
         </div>
       )}
