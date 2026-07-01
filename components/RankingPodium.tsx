@@ -1,4 +1,6 @@
-import type { RankingEntry } from '@/lib/types'
+import { useMemo } from 'react'
+import { getPodiumRankedEntries } from '@/lib/ranking'
+import type { RankingEntry, RankingEntryWithRank } from '@/lib/types'
 
 type RankingPodiumProps = {
   entries: RankingEntry[]
@@ -6,9 +8,9 @@ type RankingPodiumProps = {
 
 type PodiumPlace = 1 | 2 | 3
 
-type PodiumSlot = {
+type PodiumGroup = {
   place: PodiumPlace
-  entry: RankingEntry | undefined
+  entries: RankingEntryWithRank[]
 }
 
 const PLACE_CONFIG: Record<
@@ -48,29 +50,27 @@ const PLACE_CONFIG: Record<
   },
 }
 
-function buildPodiumSlots(entries: RankingEntry[]): PodiumSlot[] {
-  const top = entries.slice(0, 3)
+function buildPodiumGroups(entries: RankingEntry[]): PodiumGroup[] {
+  const podiumEntries = getPodiumRankedEntries(entries)
+  const groups: PodiumGroup[] = []
 
-  if (top.length === 0) {
-    return []
+  for (const place of [1, 2, 3] as const) {
+    const placeEntries = podiumEntries.filter((entry) => entry.rank === place)
+    if (placeEntries.length > 0) {
+      groups.push({ place, entries: placeEntries })
+    }
   }
-  if (top.length === 1) {
-    return [{ place: 1, entry: top[0] }]
-  }
-  if (top.length === 2) {
-    return [
-      { place: 2, entry: top[1] },
-      { place: 1, entry: top[0] },
-    ]
-  }
-  return [
-    { place: 2, entry: top[1] },
-    { place: 1, entry: top[0] },
-    { place: 3, entry: top[2] },
-  ]
+
+  return groups
 }
 
-function PodiumCard({ place, entry }: PodiumSlot) {
+function PodiumCard({
+  place,
+  entry,
+}: {
+  place: PodiumPlace
+  entry: RankingEntryWithRank
+}) {
   if (!entry) return null
 
   const config = PLACE_CONFIG[place]
@@ -130,10 +130,28 @@ function PodiumCard({ place, entry }: PodiumSlot) {
   )
 }
 
+function PodiumColumn({ group }: { group: PodiumGroup }) {
+  const isFirst = group.place === 1
+
+  return (
+    <div
+      className={`flex w-full flex-col items-end gap-3 ${
+        isFirst ? 'sm:max-w-[14rem]' : 'sm:max-w-[12rem]'
+      }`}
+    >
+      {group.entries.map((entry) => (
+        <PodiumCard key={entry.card_id} place={group.place} entry={entry} />
+      ))}
+    </div>
+  )
+}
+
 export default function RankingPodium({ entries }: RankingPodiumProps) {
-  const slots = buildPodiumSlots(entries)
-  const isSolo = slots.length === 1
-  const isDuo = slots.length === 2
+  const groups = useMemo(() => buildPodiumGroups(entries), [entries])
+  const second = groups.find((group) => group.place === 2)
+  const first = groups.find((group) => group.place === 1)
+  const third = groups.find((group) => group.place === 3)
+  const columnCount = groups.length
 
   return (
     <section className="mb-12">
@@ -145,24 +163,28 @@ export default function RankingPodium({ entries }: RankingPodiumProps) {
         <p className="text-center text-sm text-emerald-800/70">
           Aún no hay cartillas en este ranking.
         </p>
-      ) : isSolo ? (
+      ) : columnCount === 1 && first ? (
         <div className="mx-auto max-w-xs">
-          <PodiumCard {...slots[0]} />
+          <PodiumColumn group={first} />
         </div>
-      ) : isDuo ? (
-        <div className="mx-auto flex max-w-md items-end justify-center gap-4 sm:gap-8">
+      ) : columnCount === 2 && first && second ? (
+        <div className="mx-auto flex max-w-2xl items-end justify-center gap-4 sm:gap-8">
           <div className="w-[42%] max-w-[9.5rem] sm:max-w-[10rem]">
-            <PodiumCard {...slots[0]} />
+            <PodiumColumn group={second} />
           </div>
           <div className="w-[48%] max-w-[11rem] sm:max-w-[12rem]">
-            <PodiumCard {...slots[1]} />
+            <PodiumColumn group={first} />
           </div>
         </div>
       ) : (
-        <div className="mx-auto grid max-w-3xl grid-cols-3 items-end gap-2 sm:gap-4">
-          <PodiumCard {...slots[0]} />
-          <PodiumCard {...slots[1]} />
-          <PodiumCard {...slots[2]} />
+        <div className="mx-auto grid max-w-4xl grid-cols-1 items-end gap-4 sm:grid-cols-3 sm:gap-4">
+          <div className={second ? '' : 'hidden sm:block'}>
+            {second ? <PodiumColumn group={second} /> : null}
+          </div>
+          <div>{first ? <PodiumColumn group={first} /> : null}</div>
+          <div className={third ? '' : 'hidden sm:block'}>
+            {third ? <PodiumColumn group={third} /> : null}
+          </div>
         </div>
       )}
     </section>

@@ -87,6 +87,10 @@ export type RankingEntry = {
   status?: string
 }
 
+export type RankingEntryWithRank = RankingEntry & {
+  rank: number
+}
+
 export type PredictionResultType =
   | 'SCORE_EXACTO'
   | 'RESULTADO_ACERTADO'

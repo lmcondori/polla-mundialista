@@ -78,6 +78,13 @@ export default function RankingPage() {
             administración.
           </p>
           <p className="mt-2 text-emerald-800/70">{copy.description}</p>
+          <p className="mt-2 text-sm text-emerald-800/70">
+            El ranking se ordena por puntos totales. En caso de empate, las
+            cartillas comparten la misma posición.
+          </p>
+          <p className="mt-1 text-sm text-emerald-800/70">
+            La numeración de puestos usa ranking denso: 1, 1, 2, 2, 3.
+          </p>
           <Link
             href="/dashboard"
             className="mt-4 inline-flex text-sm font-medium text-emerald-700 hover:underline"

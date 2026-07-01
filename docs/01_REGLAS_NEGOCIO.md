@@ -78,12 +78,14 @@ El cálculo se realiza en **Supabase** (funciones de BD invocadas vía RPC). El 
 
 ### Orden oficial del ranking
 
-1. Mayor puntaje total (`total_points` descendente)
-2. Mayor cantidad de marcadores exactos (`exact_scores` descendente)
-3. Mayor cantidad de aciertos de resultado o clasificado (`result_hits` descendente)
-4. Nombre de cartilla en orden alfabético ascendente (`card_name` ascendente)
+1. Mayor puntaje total (`total_points` descendente).
+2. **Empates:** si dos o más cartillas tienen el mismo `total_points`, comparten la misma posición.
+3. **Ranking denso:** la numeración de puestos es 1, 1, 2, 2, 3 (no 1, 1, 3, 3, 5).
+4. `exact_scores`, `result_hits` y `total_predictions` son **solo estadísticas informativas**; no desempatan.
 
-El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits` desc y `card_name` asc.
+El ranking se ordena por puntos totales. En caso de empate, las cartillas comparten la misma posición. La numeración de puestos usa ranking denso: 1, 1, 2, 2, 3.
+
+Para estabilidad visual dentro del mismo puntaje, el listado puede ordenar alfabéticamente por `card_name` asc; eso **no** afecta el puesto.
 
 ### Puntaje eliminatoria
 

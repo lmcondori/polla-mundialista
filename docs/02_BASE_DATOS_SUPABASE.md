@@ -154,17 +154,13 @@ Cartillas **ACTIVE** con `stage = 'GROUP_STAGE'` y métricas agregadas de fase d
 | `result_hits` | Cantidad `RESULTADO_ACERTADO` |
 | `status` | Estado de cartilla |
 
-**Orden oficial** (aplicado en consultas del frontend vía `lib/ranking.ts`):
+**Orden en consultas del frontend** (vía `lib/ranking.ts`):
 
 ```sql
-ORDER BY
-  total_points DESC,
-  exact_scores DESC,
-  result_hits DESC,
-  card_name ASC
+ORDER BY total_points DESC, card_name ASC  -- card_name solo para estabilidad visual
 ```
 
-El ranking se ordena por `total_points` desc, `exact_scores` desc, `result_hits` desc y `card_name` asc.
+La **posición** se calcula en frontend con ranking denso: solo `total_points`; empates comparten puesto (1, 1, 2, 2, 3). `exact_scores`, `result_hits` y `total_predictions` no desempatan.
 
 **Uso en frontend:** `/ranking`, `/` (ranking destacado), `/cards-public/[id]` (cabecera y stats; consulta por `card_id` sin orden de listado).
 
@@ -191,14 +187,10 @@ Cartillas **ACTIVE** con `stage = 'KNOCKOUT_STAGE'` y métricas agregadas solo d
 | `status` | Estado de cartilla (`ACTIVE`) |
 | `stage` | Etapa (`KNOCKOUT_STAGE`) |
 
-**Orden oficial** (mismo criterio que grupos; aplicar en frontend):
+**Orden en consultas** (mismo criterio que grupos; posición con ranking denso en `lib/ranking.ts`):
 
 ```sql
-ORDER BY
-  total_points DESC,
-  exact_scores DESC,
-  result_hits DESC,
-  card_name ASC
+ORDER BY total_points DESC, card_name ASC
 ```
 
 **Uso en frontend:** pestaña «Llaves» en `/ranking` (Fase 7).

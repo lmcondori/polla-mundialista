@@ -11,9 +11,12 @@ import {
   isMatchPredictionClosed,
   sortMatchesByDateAsc,
 } from '@/lib/matchPrediction'
-import { applyRankingOrder, RANKING_ENTRY_SELECT } from '@/lib/ranking'
+import {
+  fetchRankingForStage,
+  getPodiumRankedEntries,
+} from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
-import type { RankingEntry } from '@/lib/types'
+import type { RankingEntryWithRank } from '@/lib/types'
 
 type PendingSummary = {
   todayMatches: number
@@ -53,7 +56,7 @@ function computePendingSummary(
 
 export default function HomePageContent() {
   const [todayMatches, setTodayMatches] = useState<HomeTodayMatch[]>([])
-  const [topRanking, setTopRanking] = useState<RankingEntry[]>([])
+  const [topRanking, setTopRanking] = useState<RankingEntryWithRank[]>([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [pendingSummary, setPendingSummary] = useState<PendingSummary | null>(
     null
@@ -81,14 +84,13 @@ export default function HomePageContent() {
 
     setTodayMatches(matchesToday)
 
-    const { data: rankingData, error: rankingError } = await applyRankingOrder(
-      supabase.from('vw_ranking_cards').select(RANKING_ENTRY_SELECT)
-    ).limit(3)
+    const { data: rankingData, error: rankingError } =
+      await fetchRankingForStage(supabase, 'GROUP_STAGE')
 
     if (rankingError) {
       setError(rankingError.message)
     } else {
-      setTopRanking((rankingData ?? []) as RankingEntry[])
+      setTopRanking(getPodiumRankedEntries(rankingData ?? []))
     }
 
     const {
@@ -306,21 +308,21 @@ export default function HomePageContent() {
                 </p>
               ) : (
                 <ol className="space-y-3">
-                  {topRanking.map((entry, index) => (
+                  {topRanking.map((entry) => (
                     <li
                       key={entry.card_id}
                       className="flex items-center gap-3 rounded-lg border border-emerald-50 bg-emerald-50/40 px-3 py-2.5"
                     >
                       <span
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                          index === 0
+                          entry.rank === 1
                             ? 'bg-amber-100 text-amber-800'
-                            : index === 1
+                            : entry.rank === 2
                               ? 'bg-slate-200 text-slate-700'
                               : 'bg-orange-100 text-orange-800'
                         }`}
                       >
-                        {index + 1}
+                        {entry.rank}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-emerald-950">

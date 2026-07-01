@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { RankingEntry } from '@/lib/types'
+import type { RankingEntry, RankingEntryWithRank } from '@/lib/types'
 
 /** Columnas estándar para listados desde vistas de ranking. */
 export const RANKING_ENTRY_SELECT =
@@ -20,6 +20,38 @@ async function getKnockoutCardIds(
     .select('card_id')
 
   return new Set((data ?? []).map((row) => String(row.card_id)))
+}
+
+/**
+ * Orden visual estable dentro del mismo puntaje (no afecta el puesto).
+ */
+export function sortRankingEntries(entries: RankingEntry[]): RankingEntry[] {
+  return [...entries].sort((a, b) => {
+    const pointsDiff = (b.total_points ?? 0) - (a.total_points ?? 0)
+    if (pointsDiff !== 0) return pointsDiff
+    return (a.card_name ?? '').localeCompare(b.card_name ?? '', 'es')
+  })
+}
+
+/**
+ * Asigna posiciones con ranking denso usando solo total_points.
+ * Empates comparten el mismo rank; el siguiente puntaje distinto incrementa en 1.
+ */
+export function calculateDenseRankingPositions(
+  items: RankingEntry[]
+): RankingEntryWithRank[] {
+  const sorted = sortRankingEntries(items)
+  let rank = 0
+  let previousPoints: number | null = null
+
+  return sorted.map((item, index) => {
+    const points = item.total_points ?? 0
+    if (index === 0 || points !== previousPoints) {
+      rank += 1
+      previousPoints = points
+    }
+    return { ...item, rank }
+  })
 }
 
 /**
@@ -49,8 +81,10 @@ export async function fetchRankingForStage(
       return { data: null, error: rankingResult.error }
     }
 
-    const entries = ((rankingResult.data ?? []) as RankingEntry[]).filter(
-      (entry) => !knockoutCardIds.has(String(entry.card_id))
+    const entries = sortRankingEntries(
+      ((rankingResult.data ?? []) as RankingEntry[]).filter(
+        (entry) => !knockoutCardIds.has(String(entry.card_id))
+      )
     )
 
     return { data: entries, error: null }
@@ -64,7 +98,10 @@ export async function fetchRankingForStage(
     return { data: null, error }
   }
 
-  return { data: (data ?? []) as RankingEntry[], error: null }
+  return {
+    data: sortRankingEntries((data ?? []) as RankingEntry[]),
+    error: null,
+  }
 }
 
 type OrderableQuery = {
@@ -75,13 +112,20 @@ type OrderableQuery = {
 }
 
 /**
- * Orden oficial del ranking:
- * total_points desc, exact_scores desc, result_hits desc, card_name asc
+ * Orden de consulta: total_points desc.
+ * card_name asc solo para estabilidad visual dentro del mismo puntaje.
  */
 export function applyRankingOrder<T extends OrderableQuery>(query: T): T {
   return query
     .order('total_points', { ascending: false })
-    .order('exact_scores', { ascending: false })
-    .order('result_hits', { ascending: false })
     .order('card_name', { ascending: true }) as T
+}
+
+/** Entradas del podio: puestos 1, 2 y 3 según ranking denso. */
+export function getPodiumRankedEntries(
+  entries: RankingEntry[]
+): RankingEntryWithRank[] {
+  return calculateDenseRankingPositions(entries).filter(
+    (entry) => entry.rank <= 3
+  )
 }

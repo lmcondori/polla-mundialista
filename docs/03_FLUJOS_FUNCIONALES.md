@@ -177,9 +177,9 @@ flowchart LR
   A[/ranking] --> B{Pestaña activa}
   B -->|Grupos| C[SELECT vw_ranking_cards]
   B -->|Llaves| D[SELECT vw_ranking_cards_knockout]
-  C --> E[Ordenar: puntos, exactos, aciertos, nombre cartilla]
+  C --> E[Ordenar por puntos totales y calcular ranking denso]
   D --> E
-  E --> F[Podio top 3]
+  E --> F[Podio puestos 1–3 con empates]
   E --> G[Tabla completa]
   G --> H[Ver detalle → /cards-public/card_id]
 ```
@@ -192,7 +192,8 @@ flowchart LR
 - Cartillas `INACTIVE` no aparecen.
 - Pestaña «Fase de grupos»: `vw_ranking_cards` (sin cambios).
 - Pestaña «Llaves»: `vw_ranking_cards_knockout`; solo octavos en adelante; columna `result_hits` = aciertos de clasificado (puntos 3); sin enlace a vista pública (solo grupos).
-- Orden oficial: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc (helper `lib/ranking.ts`).
+- Orden oficial: `total_points` desc; empates comparten posición; ranking denso (1, 1, 2, 2, 3) vía `calculateDenseRankingPositions` en `lib/ranking.ts`.
+- Texto UI: «El ranking se ordena por puntos totales. En caso de empate, las cartillas comparten la misma posición.» + «La numeración de puestos usa ranking denso: 1, 1, 2, 2, 3.»
 
 ---
 
@@ -306,7 +307,7 @@ flowchart TD
 | `lib/knockoutMatches.ts` | Partidos eliminatoria, placeholders, cuadro 73–104 |
 | `lib/cardSummary.ts` | Etiquetas y stats de resumen |
 | `lib/settingsDeadline.ts` | Parse/build deadline Perú |
-| `lib/ranking.ts` | Orden oficial de vistas de ranking (grupos y llaves) |
+| `lib/ranking.ts` | Orden por puntos, ranking denso y fetch por etapa (grupos y llaves) |
 | `lib/knockoutCardSummary.ts` | Stats y filas de resumen eliminatoria |
 | `supabase/migrations/` | Migraciones SQL (Fases 1–3 etapa eliminatoria) |
 | `components/Navbar.tsx` | Navegación global |

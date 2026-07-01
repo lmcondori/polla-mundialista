@@ -98,8 +98,8 @@ Imports con alias `@/` (ej. `@/lib/types`).
 | Deadline cartillas | `settings.card_creation_deadline`; formato Perú (`lib/settingsDeadline.ts`) |
 | Vista pública | `vw_ranking_cards` + `vw_card_prediction_detail`; ocultar si `match_date > now` |
 | Admin | `role === 'admin'`; escritura sensible vía RPC |
-| Ranking grupos | Solo cartillas `ACTIVE` con `stage = 'GROUP_STAGE'` (`vw_ranking_cards`); orden: `total_points` desc, `exact_scores` desc, `result_hits` desc, `card_name` asc |
-| Ranking llaves | Cartillas `ACTIVE` con `stage = 'KNOCKOUT_STAGE'` (`vw_ranking_cards_knockout`); mismo orden que grupos; **solo octavos en adelante** |
+| Ranking grupos | Solo cartillas `ACTIVE` con `stage = 'GROUP_STAGE'` (`vw_ranking_cards`); orden: `total_points` desc; empates comparten posición; ranking denso |
+| Ranking llaves | Cartillas `ACTIVE` con `stage = 'KNOCKOUT_STAGE'` (`vw_ranking_cards_knockout`); mismo criterio de posición; **solo octavos en adelante** |
 | Puntaje grupos | Exacto = 5 · Resultado = 3 · Fallo = 0 |
 | Puntaje llaves | Exacto = 5 · Clasificado = 3 · Fallo = 0 (`save_knockout_match_result_and_recalculate`) |
 

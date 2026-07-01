@@ -114,6 +114,7 @@ Antes de implementar cualquier feature o fix:
 | 2026-06 | Fase 8 revisión final: navegación, textos unificados, aislamiento `GROUP_STAGE` en `fetchMatchesWithTeams` |
 | 2026-06 | Fase 9 cuadro de llaves: `/knockout`, `KnockoutBracket`, menú «Llaves» |
 | 2026-06 | Fase 10 ranking llaves desde octavos: vista `vw_ranking_cards_knockout`, resumen cartilla |
+| 2026-07 | Ranking denso por `total_points`: empates comparten posición; podio y tabla corregidos en frontend (`lib/ranking.ts`) |
 
 ---
 

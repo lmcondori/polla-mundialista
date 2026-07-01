@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { useMemo } from 'react'
+import { calculateDenseRankingPositions } from '@/lib/ranking'
 import type { RankingEntry } from '@/lib/types'
 
 type RankingTableProps = {
@@ -12,7 +14,12 @@ export default function RankingTable({
   resultHitsLabel = 'Aciertos',
   showPublicDetail = true,
 }: RankingTableProps) {
-  if (entries.length === 0) {
+  const rankedEntries = useMemo(
+    () => calculateDenseRankingPositions(entries),
+    [entries]
+  )
+
+  if (rankedEntries.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 px-6 py-12 text-center">
         <p className="text-emerald-800/80">
@@ -50,10 +57,10 @@ export default function RankingTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-emerald-50">
-          {entries.map((entry, index) => (
+          {rankedEntries.map((entry) => (
             <tr key={entry.card_id} className="hover:bg-emerald-50/40">
               <td className="px-4 py-3 font-medium text-emerald-800">
-                {index + 1}
+                {entry.rank}
               </td>
               <td className="px-4 py-3 font-medium text-emerald-950">
                 {entry.card_name}
