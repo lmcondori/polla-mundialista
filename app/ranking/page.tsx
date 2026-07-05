@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
+import KnockoutRulesPanel from '@/components/KnockoutRulesPanel'
 import RankingPodium from '@/components/RankingPodium'
 import RankingSummaryCards from '@/components/RankingSummaryCards'
 import RankingTable from '@/components/RankingTable'
@@ -27,7 +28,7 @@ const RANKING_COPY: Record<
   KNOCKOUT_STAGE: {
     title: 'Ranking de llaves',
     description:
-      'Clasificación oficial desde octavos de final. Los 16avos no suman al puntaje.',
+      'Clasificación oficial desde octavos de final hasta la final. Los 16avos no suman al puntaje.',
     tableTitle: 'Tabla de llaves',
   },
 }
@@ -115,6 +116,10 @@ export default function RankingPage() {
             </button>
           ))}
         </div>
+
+        {isKnockout && (
+          <KnockoutRulesPanel showRoundOf32Note className="mb-8" />
+        )}
 
         {loading && (
           <p className="py-12 text-center text-emerald-800">Cargando ranking…</p>

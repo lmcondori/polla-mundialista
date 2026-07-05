@@ -32,6 +32,8 @@ Perfil extendido de cada usuario de Auth.
 | `id` | UUID | PK; coincide con `auth.users.id` |
 | `full_name` | text | Nombre del participante |
 | `role` | text | `admin` \| `participant` |
+| `whatsapp_phone` | text | Número internacional sin `+` (ej. `51999999999`); recordatorios manuales |
+| `whatsapp_enabled` | boolean | Default `true`; si `false`, no enviar recordatorio |
 
 **Notas:**
 

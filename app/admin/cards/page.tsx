@@ -22,6 +22,8 @@ type CardAdminRow = {
 type ProfileMini = {
   id: string
   full_name: string | null
+  whatsapp_phone: string | null
+  whatsapp_enabled: boolean | null
 }
 
 const PERU_DATE_TIME_FORMAT = new Intl.DateTimeFormat('es-PE', {
@@ -44,7 +46,9 @@ export default function AdminCardsPage() {
   const router = useRouter()
   const [accessState, setAccessState] = useState<AccessState>('checking')
   const [cards, setCards] = useState<CardAdminRow[]>([])
-  const [profilesById, setProfilesById] = useState<Record<string, string>>({})
+  const [profilesById, setProfilesById] = useState<
+    Record<string, { full_name: string; whatsapp_phone: string | null }>
+  >({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<CardStatusFilter>('ALL')
@@ -87,7 +91,7 @@ export default function AdminCardsPage() {
 
     const { data: profilesData, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, whatsapp_phone, whatsapp_enabled')
       .in('id', userIds)
 
     if (profilesError) {
@@ -97,9 +101,14 @@ export default function AdminCardsPage() {
       return
     }
 
-    const map: Record<string, string> = {}
+    const map: Record<string, { full_name: string; whatsapp_phone: string | null }> =
+      {}
     for (const profile of (profilesData ?? []) as ProfileMini[]) {
-      map[profile.id] = profile.full_name ?? 'Participante'
+      map[profile.id] = {
+        full_name: profile.full_name ?? 'Participante',
+        whatsapp_phone:
+          profile.whatsapp_enabled === false ? null : profile.whatsapp_phone,
+      }
     }
     setProfilesById(map)
     setLoading(false)
@@ -152,7 +161,7 @@ export default function AdminCardsPage() {
       })
       .filter((card) => {
         if (!query) return true
-        const participant = (profilesById[card.user_id] ?? '').toLowerCase()
+        const participant = (profilesById[card.user_id]?.full_name ?? '').toLowerCase()
         const cardName = card.card_name.toLowerCase()
         return participant.includes(query) || cardName.includes(query)
       })
@@ -296,12 +305,13 @@ export default function AdminCardsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-emerald-100 bg-white shadow-sm">
-            <table className="w-full min-w-[980px] text-left text-sm">
+            <table className="w-full min-w-[1100px] text-left text-sm">
               <thead>
                 <tr className="border-b border-emerald-100 bg-emerald-50/80">
                   <th className="px-4 py-3 font-semibold text-emerald-900">ID</th>
                   <th className="px-4 py-3 font-semibold text-emerald-900">Cartilla</th>
                   <th className="px-4 py-3 font-semibold text-emerald-900">Participante</th>
+                  <th className="px-4 py-3 font-semibold text-emerald-900">WhatsApp</th>
                   <th className="px-4 py-3 font-semibold text-emerald-900">Estado</th>
                   <th className="px-4 py-3 font-semibold text-emerald-900">Creación</th>
                   <th className="px-4 py-3 font-semibold text-emerald-900">Nota administrativa</th>
@@ -310,7 +320,10 @@ export default function AdminCardsPage() {
               </thead>
               <tbody className="divide-y divide-emerald-50">
                 {filteredCards.map((card) => {
-                  const participantName = profilesById[card.user_id] ?? 'Participante'
+                  const participantName =
+                    profilesById[card.user_id]?.full_name ?? 'Participante'
+                  const whatsappPhone =
+                    profilesById[card.user_id]?.whatsapp_phone ?? null
                   const isActive = card.status === 'ACTIVE'
                   const nextStatus = isActive ? 'INACTIVE' : 'ACTIVE'
                   const isUpdating = updatingCardId === card.id
@@ -322,6 +335,15 @@ export default function AdminCardsPage() {
                       </td>
                       <td className="px-4 py-3 font-medium text-emerald-950">{card.card_name}</td>
                       <td className="px-4 py-3 text-emerald-800">{participantName}</td>
+                      <td className="px-4 py-3 text-emerald-800">
+                        {whatsappPhone ? (
+                          whatsappPhone
+                        ) : (
+                          <span className="text-emerald-700/60">
+                            Sin número registrado
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import CardPredictionsSummary from '@/components/CardPredictionsSummary'
 import KnockoutCardPredictionsSection from '@/components/KnockoutCardPredictionsSection'
+import KnockoutRulesPanel from '@/components/KnockoutRulesPanel'
 import {
   fetchKnockoutMatchesWithTeams,
   getKnockoutPhaseLabel,
@@ -218,6 +219,7 @@ export default function KnockoutStagePredictions({
           Ingresa marcador y equipo clasificado para cada partido de
           eliminatoria directa.
         </p>
+        <KnockoutRulesPanel showRoundOf32Note className="mt-4" />
         <Link
           href={`/cards/${cardId}/summary`}
           className="mt-4 inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"

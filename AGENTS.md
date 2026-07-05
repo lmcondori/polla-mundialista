@@ -101,7 +101,7 @@ Imports con alias `@/` (ej. `@/lib/types`).
 | Ranking grupos | Solo cartillas `ACTIVE` con `stage = 'GROUP_STAGE'` (`vw_ranking_cards`); orden: `total_points` desc; empates comparten posición; ranking denso |
 | Ranking llaves | Cartillas `ACTIVE` con `stage = 'KNOCKOUT_STAGE'` (`vw_ranking_cards_knockout`); mismo criterio de posición; **solo octavos en adelante** |
 | Puntaje grupos | Exacto = 5 · Resultado = 3 · Fallo = 0 |
-| Puntaje llaves | Exacto = 5 · Clasificado = 3 · Fallo = 0 (`save_knockout_match_result_and_recalculate`) |
+| Puntaje llaves | Marcador exacto = 3 · Clasificado = 2 · Máx 5 por partido (`calculate_prediction_points_v2`) |
 
 ---
 
@@ -198,7 +198,7 @@ Detalle completo: [docs/02_BASE_DATOS_SUPABASE.md](./docs/02_BASE_DATOS_SUPABASE
 | `/ranking` | Público | `vw_ranking_cards`, `vw_ranking_cards_knockout` (pestañas) |
 | `/knockout` | Público | Cuadro de llaves real (`matches` 73–104) |
 | `/cards-public/[id]` | Autenticado | `vw_ranking_cards`, `vw_card_prediction_detail` |
-| `/admin/*` | Admin | `cards`, `matches`, RPCs |
+| `/admin/*` | Admin | `cards`, `matches`, RPCs, recordatorios WhatsApp (`/admin/reminders`) |
 
 Flujos detallados: [docs/03_FLUJOS_FUNCIONALES.md](./docs/03_FLUJOS_FUNCIONALES.md).
 

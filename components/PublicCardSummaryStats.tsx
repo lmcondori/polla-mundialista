@@ -3,6 +3,7 @@ type PublicCardSummaryStatsProps = {
   exactScores: number
   resultHits: number
   totalPredictions: number
+  exactScoresLabel?: string
   resultHitsLabel?: string
   totalPointsLabel?: string
   totalPredictionsLabel?: string
@@ -20,11 +21,15 @@ export default function PublicCardSummaryStats({
   exactScores,
   resultHits,
   totalPredictions,
+  exactScoresLabel,
   resultHitsLabel,
   totalPointsLabel,
   totalPredictionsLabel,
 }: PublicCardSummaryStatsProps) {
   const items = BASE_ITEMS.map((item) => {
+    if (item.key === 'exactScores' && exactScoresLabel) {
+      return { ...item, label: exactScoresLabel }
+    }
     if (item.key === 'resultHits' && resultHitsLabel) {
       return { ...item, label: resultHitsLabel }
     }

@@ -2,6 +2,8 @@ export type Profile = {
   id: string
   full_name: string
   role: string
+  whatsapp_phone?: string | null
+  whatsapp_enabled?: boolean
 }
 
 export type CardStage = 'GROUP_STAGE' | 'KNOCKOUT_STAGE'

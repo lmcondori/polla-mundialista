@@ -10,7 +10,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 |------|--------|-------|
 | **Etapa eliminatoria** | ✅ Implementada | Rama `feature/etapa-llaves` (Fases 1–10). **No romper fase de grupos.** |
 | Cambio de reglas de puntaje grupos | 🚫 Prohibido | 5 / 3 / 0 en funciones de BD para `GROUP_STAGE` |
-| Puntaje eliminatoria | ✅ En repo | 5 / 3 / 0 con clasificado; `003_knockout_functions_and_views.sql` |
+| Puntaje eliminatoria | ✅ En repo | Marcador exacto 3 + clasificado 2 (máx 5); `006_fix_knockout_points_composite.sql` |
 | Renombrar columnas/tablas | 🚫 Prohibido | Ver `01_REGLAS_NEGOCIO.md` y `02_BASE_DATOS_SUPABASE.md` |
 | Recalcular puntos en frontend | 🚫 Prohibido | Usar RPC existentes |
 
@@ -56,6 +56,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 | **8** | Revisión final, navegación, textos y aislamiento grupos/llaves | ✅ En repo |
 | **9** | Cuadro gráfico de llaves reales (`/knockout`) | ✅ En repo |
 | **10** | Ranking oficial de llaves desde octavos (`004_knockout_ranking_from_round_of_16.sql`) | ✅ En repo |
+| **11** | Recordatorios manuales WhatsApp (`/admin/reminders`, wa.me) | ✅ En repo |
 
 **Decisiones oficiales:**
 
@@ -115,6 +116,8 @@ Antes de implementar cualquier feature o fix:
 | 2026-06 | Fase 9 cuadro de llaves: `/knockout`, `KnockoutBracket`, menú «Llaves» |
 | 2026-06 | Fase 10 ranking llaves desde octavos: vista `vw_ranking_cards_knockout`, resumen cartilla |
 | 2026-07 | Ranking denso por `total_points`: empates comparten posición; podio y tabla corregidos en frontend (`lib/ranking.ts`) |
+| 2026-07 | Fase 11 recordatorios WhatsApp: `005_profiles_whatsapp_fields.sql`, `/admin/reminders` |
+| 2026-07 | Fix puntaje compuesto llaves: `006_fix_knockout_points_composite.sql` (3+2, máx 5 por partido) |
 
 ---
 
@@ -124,6 +127,7 @@ Estas ideas **no** están aprobadas para desarrollo:
 
 - Exportar ranking a PDF/Excel
 - Notificaciones push o email de cierre de pronósticos
+- Envío automático de WhatsApp (API oficial o proveedor externo) — **fuera de alcance Fase 11**
 - Múltiples deadlines por fase
 - Segunda etapa por llaves del Mundial — **implementada** (ver tabla de fases)
 - Modo oscuro

@@ -89,15 +89,26 @@ Para estabilidad visual dentro del mismo puntaje, el listado puede ordenar alfab
 
 ### Puntaje eliminatoria
 
-| Resultado | Puntos | Notas |
-|-----------|--------|-------|
-| Marcador exacto | **5** | Prioridad sobre acierto de clasificado |
-| Acierta equipo clasificado (sin marcador exacto) | **3** | `predicted_winner_team_id = winner_team_id` |
-| No acierta | **0** | Incluye partido sin `winner_team_id` registrado |
+La etapa de llaves se juega desde **octavos de final** hasta la final. Por cada partido se pronostica **marcador** y **equipo clasificado**.
+
+| Escenario | Puntos |
+|-----------|--------|
+| Marcador exacto + clasificado correcto | **5** |
+| Marcador exacto, pero clasificado incorrecto | **3** |
+| Clasificado correcto, sin marcador exacto | **2** |
+| Clasificado incorrecto y marcador no exacto | **0** |
+
+Componentes en BD: marcador exacto = **3** pts + clasificado correcto = **2** pts (máximo **5** por partido).
+
+Si el marcador pronosticado es empate, se debe indicar qué equipo clasifica. Puede haber empate en el marcador real; siempre debe existir un equipo clasificado (`winner_team_id`).
+
+El ranking es acumulado hasta la final. Los puestos pueden ser compartidos según el puntaje obtenido (ranking denso por `total_points`).
 
 **Ranking y resumen oficial de llaves:** el puntaje acumulado considera solo partidos desde **octavos de final** (`ROUND_OF_16`, `QUARTER_FINAL`, `SEMI_FINAL`, `THIRD_PLACE`, `FINAL`). Los **16avos** (`ROUND_OF_32`) permanecen en el fixture, pronósticos y cuadro gráfico, pero **no suman** al ranking ni al total de la cartilla de llaves.
 
-El participante pronostica marcador y `predicted_winner_team_id`. El admin registra marcador real, `winner_team_id` y `loser_team_id` (calculado) vía RPC `save_knockout_match_result_and_recalculate`. Puede haber empate en marcador; siempre debe existir un equipo clasificado.
+El participante pronostica marcador y `predicted_winner_team_id`. El admin registra marcador real, `winner_team_id` y `loser_team_id` (calculado) vía RPC `save_knockout_match_result_and_recalculate`.
+
+**Migración:** `006_fix_knockout_points_composite.sql`.
 
 ---
 

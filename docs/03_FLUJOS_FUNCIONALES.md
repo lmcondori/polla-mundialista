@@ -191,7 +191,7 @@ flowchart LR
 - Solo cartillas `ACTIVE` (las vistas ya las filtran).
 - Cartillas `INACTIVE` no aparecen.
 - Pestaña «Fase de grupos»: `vw_ranking_cards` (sin cambios).
-- Pestaña «Llaves»: `vw_ranking_cards_knockout`; solo octavos en adelante; columna `result_hits` = aciertos de clasificado (puntos 3); sin enlace a vista pública (solo grupos).
+- Pestaña «Llaves»: `vw_ranking_cards_knockout`; solo octavos en adelante; `exact_scores` = aciertos de marcador exacto (3 o 5 pts); `result_hits` = aciertos de clasificado (2 o 5 pts); sin enlace a vista pública (solo grupos).
 - Orden oficial: `total_points` desc; empates comparten posición; ranking denso (1, 1, 2, 2, 3) vía `calculateDenseRankingPositions` en `lib/ranking.ts`.
 - Texto UI: «El ranking se ordena por puntos totales. En caso de empate, las cartillas comparten la misma posición.» + «La numeración de puestos usa ranking denso: 1, 1, 2, 2, 3.»
 
@@ -296,6 +296,40 @@ flowchart TD
 
 ---
 
+## Flujo 11 — Recordatorios WhatsApp (admin, manual)
+
+```mermaid
+flowchart TD
+  A[Admin /admin/reminders] --> B[Cargar cartillas ACTIVE]
+  B --> C[Partidos abiertos con equipos definidos]
+  C --> D{Etapa cartilla}
+  D -->|GROUP_STAGE| E[Solo phase GROUP_STAGE]
+  D -->|KNOCKOUT_STAGE| F[Solo octavos en adelante]
+  F --> G[Excluir ROUND_OF_32]
+  E --> H[Restar pronósticos existentes]
+  G --> H
+  H --> I{¿Pendientes > 0?}
+  I -->|Sí| J[Listar fila por cartilla]
+  J --> K{¿whatsapp_phone?}
+  K -->|Sí| L[Enlace wa.me con mensaje prellenado]
+  K -->|No| M[Registrar número en UI]
+  I -->|No| N[Mensaje: sin pendientes oficiales]
+```
+
+**Archivos:** `app/admin/reminders/page.tsx`, `lib/adminReminders.ts`, `lib/whatsappReminder.ts`
+
+**Reglas:**
+
+- Solo admin (`profiles.role = 'admin'`).
+- **No** hay envío automático ni API de WhatsApp; el botón abre `https://wa.me/{phone}?text=...` en nueva pestaña.
+- Pendientes oficiales: partido no iniciado, equipos definidos, sin pronóstico en la cartilla.
+- Llaves: solo `ROUND_OF_16` … `FINAL`; `ROUND_OF_32` excluido.
+- Cartillas `INACTIVE` no se listan.
+- Perfil: `profiles.whatsapp_phone` (formato internacional sin `+`), `whatsapp_enabled` (default `true`).
+- Migración: `005_profiles_whatsapp_fields.sql`.
+
+---
+
 ## Componentes y librerías compartidas
 
 | Módulo | Responsabilidad |
@@ -308,6 +342,8 @@ flowchart TD
 | `lib/cardSummary.ts` | Etiquetas y stats de resumen |
 | `lib/settingsDeadline.ts` | Parse/build deadline Perú |
 | `lib/ranking.ts` | Orden por puntos, ranking denso y fetch por etapa (grupos y llaves) |
+| `lib/adminReminders.ts` | Pendientes oficiales para recordatorios admin |
+| `lib/whatsappReminder.ts` | Mensaje prellenado y URL wa.me |
 | `lib/knockoutCardSummary.ts` | Stats y filas de resumen eliminatoria |
 | `supabase/migrations/` | Migraciones SQL (Fases 1–3 etapa eliminatoria) |
 | `components/Navbar.tsx` | Navegación global |

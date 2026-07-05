@@ -10,6 +10,8 @@ Scripts SQL versionados para aplicar en el proyecto Supabase (SQL Editor o CLI).
 | `002_seed_knockout_matches.sql` | Fase 2 | Seed partidos 73–104 (16avos + plantillas) |
 | `003_knockout_functions_and_views.sql` | Fase 3 | Funciones, RPC eliminatoria, vista ranking llaves |
 | `004_knockout_ranking_from_round_of_16.sql` | Fase 10 | Ranking llaves desde octavos (excluye `ROUND_OF_32`) |
+| `005_profiles_whatsapp_fields.sql` | Fase 11 | Campos WhatsApp en perfiles |
+| `006_fix_knockout_points_composite.sql` | Fix | Puntaje compuesto llaves (3+2) y recálculo existente |
 
 ## Fase 1 — `001_knockout_stage_schema.sql`
 

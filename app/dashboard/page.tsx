@@ -7,6 +7,7 @@ import type { User } from '@supabase/supabase-js'
 import Navbar from '@/components/Navbar'
 import CardForm from '@/components/CardForm'
 import CardList from '@/components/CardList'
+import KnockoutRulesPanel from '@/components/KnockoutRulesPanel'
 import { evaluateCreationDeadline } from '@/lib/settingsDeadline'
 import { supabase } from '@/lib/supabaseClient'
 import type { Card, CardStage } from '@/lib/types'
@@ -247,6 +248,12 @@ export default function DashboardPage() {
                   Administrar cartillas
                 </Link>
                 <Link
+                  href="/admin/reminders"
+                  className="inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
+                >
+                  Recordatorios WhatsApp
+                </Link>
+                <Link
                   href="/admin/settings"
                   className="inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
                 >
@@ -328,6 +335,7 @@ export default function DashboardPage() {
           <h2 className="mb-3 text-lg font-semibold text-emerald-900">
             Mis cartillas de llaves
           </h2>
+          <KnockoutRulesPanel showRoundOf32Note className="mb-4" />
           <CardList
             cards={knockoutCards}
             loading={cardsLoading}

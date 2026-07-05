@@ -4,11 +4,7 @@ import {
   isKnockoutOfficialRankingPhase,
   sortKnockoutMatchesByPhaseAndDate,
 } from '@/lib/knockoutMatches'
-import type {
-  KnockoutMatchWithTeams,
-  PredictionResultType,
-  Team,
-} from '@/lib/types'
+import type { KnockoutMatchWithTeams, Team } from '@/lib/types'
 
 export type KnockoutPredictionRow = {
   id: string
@@ -19,6 +15,13 @@ export type KnockoutPredictionRow = {
   predicted_winner_team_id: string | null
   points: number
 }
+
+export type KnockoutPredictionResultType =
+  | 'KNOCKOUT_EXACT_AND_CLASSIFIER'
+  | 'KNOCKOUT_EXACT_SCORE'
+  | 'RESULTADO_ACERTADO'
+  | 'NO_ACERTADO'
+  | 'PENDIENTE_RESULTADO'
 
 export type KnockoutCardSummaryRow = {
   prediction_id: string
@@ -39,12 +42,12 @@ export type KnockoutCardSummaryRow = {
   winner_label: string | null
   winner_flag_url: string | null
   points: number
-  prediction_result: PredictionResultType
+  prediction_result: KnockoutPredictionResultType
   counts_for_official_ranking: boolean
   match_date: string
 }
 
-export type KnockoutResultFilter = 'ALL' | PredictionResultType
+export type KnockoutResultFilter = 'ALL' | KnockoutPredictionResultType
 
 function resolveTeamById(
   match: KnockoutMatchWithTeams,
@@ -63,35 +66,79 @@ function getSideDisplay(
   return getKnockoutSideLabel(match, side)
 }
 
-export function getKnockoutPredictionResult(
-  match: KnockoutMatchWithTeams,
-  points: number
-): PredictionResultType {
-  const hasResult =
-    match.local_score_real !== null &&
-    match.visitor_score_real !== null &&
-    match.winner_team_id !== null
+export function hasKnockoutMatchResult(
+  match: Pick<KnockoutMatchWithTeams, 'local_score_real' | 'visitor_score_real'>
+): boolean {
+  return match.local_score_real !== null && match.visitor_score_real !== null
+}
 
+/** Estado de llaves según points ya calculados en BD (regla compuesta 3+2). */
+export function getKnockoutPredictionResultFromPoints(
+  points: number,
+  hasResult: boolean
+): KnockoutPredictionResultType {
   if (!hasResult) return 'PENDIENTE_RESULTADO'
-  if (points === 5) return 'SCORE_EXACTO'
-  if (points === 3) return 'RESULTADO_ACERTADO'
+  if (points === 5) return 'KNOCKOUT_EXACT_AND_CLASSIFIER'
+  if (points === 3) return 'KNOCKOUT_EXACT_SCORE'
+  if (points === 2) return 'RESULTADO_ACERTADO'
   return 'NO_ACERTADO'
 }
 
+export function getKnockoutPredictionResult(
+  match: Pick<KnockoutMatchWithTeams, 'local_score_real' | 'visitor_score_real'>,
+  points: number
+): KnockoutPredictionResultType {
+  return getKnockoutPredictionResultFromPoints(
+    points,
+    hasKnockoutMatchResult(match)
+  )
+}
+
 export function getKnockoutPredictionResultLabel(result: string): string {
-  if (result === 'SCORE_EXACTO') return 'Score exacto'
+  if (result === 'KNOCKOUT_EXACT_AND_CLASSIFIER') {
+    return 'Marcador exacto + clasificado'
+  }
+  if (result === 'KNOCKOUT_EXACT_SCORE') return 'Marcador exacto'
   if (result === 'RESULTADO_ACERTADO') return 'Clasificado acertado'
   if (result === 'NO_ACERTADO') return 'No acertado'
   if (result === 'PENDIENTE_RESULTADO') return 'Pendiente de resultado'
+  if (result === 'SCORE_EXACTO') return 'Marcador exacto'
+  if (result === 'SIN_CALCULAR') return 'Pendiente de resultado'
   return result
 }
 
 export function getKnockoutPredictionResultBadgeClass(result: string): string {
-  if (result === 'SCORE_EXACTO') return 'bg-amber-100 text-amber-800'
-  if (result === 'RESULTADO_ACERTADO') return 'bg-emerald-100 text-emerald-800'
+  if (result === 'KNOCKOUT_EXACT_AND_CLASSIFIER') {
+    return 'bg-violet-100 text-violet-900'
+  }
+  if (result === 'KNOCKOUT_EXACT_SCORE' || result === 'SCORE_EXACTO') {
+    return 'bg-amber-100 text-amber-800'
+  }
+  if (result === 'RESULTADO_ACERTADO') {
+    return 'bg-emerald-100 text-emerald-800'
+  }
   if (result === 'NO_ACERTADO') return 'bg-red-100 text-red-800'
-  if (result === 'PENDIENTE_RESULTADO') return 'bg-slate-100 text-slate-700'
+  if (result === 'PENDIENTE_RESULTADO' || result === 'SIN_CALCULAR') {
+    return 'bg-slate-100 text-slate-700'
+  }
   return 'bg-emerald-50 text-emerald-800'
+}
+
+export function resolveKnockoutRowResultDisplay(row: KnockoutCardSummaryRow): {
+  result: KnockoutPredictionResultType
+  label: string
+  badgeClass: string
+} {
+  const result = getKnockoutPredictionResultFromPoints(
+    row.points,
+    hasKnockoutMatchResult(row)
+  )
+
+  return {
+    result,
+    label: getKnockoutPredictionResultLabel(result),
+    badgeClass: getKnockoutPredictionResultBadgeClass(result),
+  }
 }
 
 export function buildKnockoutCardSummaryRows(
@@ -123,7 +170,10 @@ export function buildKnockoutCardSummaryRows(
         prediction.predicted_winner_team_id
       )
       const realWinner = resolveTeamById(match, match.winner_team_id)
-      const predictionResult = getKnockoutPredictionResult(match, prediction.points)
+      const predictionResult = getKnockoutPredictionResult(
+        match,
+        prediction.points
+      )
 
       return [
         {
@@ -159,16 +209,18 @@ export function buildKnockoutCardSummaryStats(rows: KnockoutCardSummaryRow[]) {
   return {
     totalPoints: officialRows.reduce((sum, row) => sum + (row.points ?? 0), 0),
     exactScores: officialRows.filter(
-      (row) => row.prediction_result === 'SCORE_EXACTO'
+      (row) => row.points === 3 || row.points === 5
     ).length,
     resultHits: officialRows.filter(
-      (row) => row.prediction_result === 'RESULTADO_ACERTADO'
+      (row) => row.points === 2 || row.points === 5
     ).length,
     missed: officialRows.filter(
-      (row) => row.prediction_result === 'NO_ACERTADO'
+      (row) =>
+        hasKnockoutMatchResult(row) &&
+        getKnockoutPredictionResultFromPoints(row.points, true) === 'NO_ACERTADO'
     ).length,
     pending: officialRows.filter(
-      (row) => row.prediction_result === 'PENDIENTE_RESULTADO'
+      (row) => !hasKnockoutMatchResult(row)
     ).length,
     totalPredictions: officialRows.length,
   }
@@ -185,7 +237,11 @@ export const KNOCKOUT_PREDICTION_RESULT_FILTERS: {
   label: string
 }[] = [
   { value: 'ALL', label: 'Todos' },
-  { value: 'SCORE_EXACTO', label: 'Score exacto' },
+  {
+    value: 'KNOCKOUT_EXACT_AND_CLASSIFIER',
+    label: 'Marcador exacto + clasificado',
+  },
+  { value: 'KNOCKOUT_EXACT_SCORE', label: 'Marcador exacto' },
   { value: 'RESULTADO_ACERTADO', label: 'Clasificado acertado' },
   { value: 'NO_ACERTADO', label: 'No acertado' },
   { value: 'PENDIENTE_RESULTADO', label: 'Pendiente de resultado' },

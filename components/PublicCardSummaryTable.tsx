@@ -1,9 +1,6 @@
 import TeamFlag from '@/components/TeamFlag'
 import { formatMatchDatePeru } from '@/lib/matchPrediction'
-import {
-  getPredictionResultBadgeClass,
-  getPredictionResultLabel,
-} from '@/lib/cardSummary'
+import { resolveCardPredictionResultDisplay } from '@/lib/cardSummary'
 import type { CardPredictionDetail } from '@/lib/types'
 
 type PublicCardSummaryTableProps = {
@@ -86,7 +83,10 @@ export default function PublicCardSummaryTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-emerald-50">
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const estado = resolveCardPredictionResultDisplay(row)
+
+              return (
               <tr key={row.prediction_id} className="hover:bg-emerald-50/40">
                 <td className="px-4 py-3 text-emerald-800">
                   <time dateTime={row.match_date}>
@@ -124,19 +124,23 @@ export default function PublicCardSummaryTable({
                 <td className="px-4 py-3 text-center">{renderPoints(row)}</td>
                 <td className="px-4 py-3">
                   <span
-                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getPredictionResultBadgeClass(row.prediction_result)}`}
+                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${estado.badgeClass}`}
                   >
-                    {getPredictionResultLabel(row.prediction_result)}
+                    {estado.label}
                   </span>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
 
       <ul className="space-y-3 md:hidden">
-        {rows.map((row) => (
+        {rows.map((row) => {
+          const estado = resolveCardPredictionResultDisplay(row)
+
+          return (
           <li
             key={row.prediction_id}
             className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm"
@@ -197,13 +201,14 @@ export default function PublicCardSummaryTable({
 
             <div className="mt-3">
               <span
-                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getPredictionResultBadgeClass(row.prediction_result)}`}
+                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${estado.badgeClass}`}
               >
-                {getPredictionResultLabel(row.prediction_result)}
+                {estado.label}
               </span>
             </div>
           </li>
-        ))}
+          )
+        })}
       </ul>
     </>
   )

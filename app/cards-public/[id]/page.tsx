@@ -276,6 +276,9 @@ export default function PublicCardDetailPage() {
               exactScores={rankingCard.exact_scores ?? 0}
               resultHits={rankingCard.result_hits ?? 0}
               totalPredictions={rankingCard.total_predictions ?? 0}
+              exactScoresLabel={
+                isKnockout ? 'Marcadores exactos' : undefined
+              }
               resultHitsLabel={
                 isKnockout ? 'Aciertos de clasificado' : undefined
               }

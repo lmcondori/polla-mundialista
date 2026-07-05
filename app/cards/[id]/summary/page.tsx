@@ -343,6 +343,9 @@ export default function CardSummaryPage() {
           missed={stats.missed}
           pending={stats.pending}
           totalPredictions={stats.totalPredictions}
+          exactScoresLabel={
+            isKnockout ? 'Marcadores exactos' : undefined
+          }
           resultHitsLabel={
             isKnockout ? 'Aciertos de clasificado' : undefined
           }

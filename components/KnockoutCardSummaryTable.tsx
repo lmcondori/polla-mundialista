@@ -1,7 +1,6 @@
 import TeamFlag from '@/components/TeamFlag'
 import {
-  getKnockoutPredictionResultBadgeClass,
-  getKnockoutPredictionResultLabel,
+  resolveKnockoutRowResultDisplay,
   type KnockoutCardSummaryRow,
 } from '@/lib/knockoutCardSummary'
 
@@ -121,7 +120,10 @@ export default function KnockoutCardSummaryTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-emerald-50">
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const estado = resolveKnockoutRowResultDisplay(row)
+
+              return (
               <tr key={row.prediction_id} className="hover:bg-emerald-50/40">
                 <td className="px-4 py-3 text-emerald-800">{row.phase_label}</td>
                 <td className="px-4 py-3 tabular-nums text-emerald-800">
@@ -182,9 +184,9 @@ export default function KnockoutCardSummaryTable({
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getKnockoutPredictionResultBadgeClass(row.prediction_result)}`}
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${estado.badgeClass}`}
                     >
-                      {getKnockoutPredictionResultLabel(row.prediction_result)}
+                      {estado.label}
                     </span>
                     {!row.counts_for_official_ranking && (
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
@@ -194,13 +196,17 @@ export default function KnockoutCardSummaryTable({
                   </div>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
 
       <ul className="space-y-3 lg:hidden">
-        {rows.map((row) => (
+        {rows.map((row) => {
+          const estado = resolveKnockoutRowResultDisplay(row)
+
+          return (
           <li
             key={row.prediction_id}
             className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm"
@@ -215,9 +221,9 @@ export default function KnockoutCardSummaryTable({
                 </span>
               )}
               <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${getKnockoutPredictionResultBadgeClass(row.prediction_result)}`}
+                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${estado.badgeClass}`}
               >
-                {getKnockoutPredictionResultLabel(row.prediction_result)}
+                {estado.label}
               </span>
               {!row.counts_for_official_ranking && (
                 <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
@@ -267,7 +273,8 @@ export default function KnockoutCardSummaryTable({
               </div>
             </dl>
           </li>
-        ))}
+          )
+        })}
       </ul>
     </>
   )
