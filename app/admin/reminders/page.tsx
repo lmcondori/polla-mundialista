@@ -9,6 +9,7 @@ import {
   type AdminReminderRow,
 } from '@/lib/adminReminders'
 import { AdminRouteLoading, useAdminRoute } from '@/lib/useAdminRoute'
+import { getKnockoutPhaseLabel } from '@/lib/knockoutMatches'
 import { formatMatchDatePeru } from '@/lib/matchPrediction'
 import { supabase } from '@/lib/supabaseClient'
 import type { CardStage } from '@/lib/types'
@@ -21,6 +22,42 @@ import {
 
 function getStageUiLabel(stage: CardStage): string {
   return stage === 'KNOCKOUT_STAGE' ? 'Llaves' : 'Fase de grupos'
+}
+
+const PENDING_PHASE_LABELS: Record<string, string> = {
+  GROUP_STAGE: 'Fase de grupos',
+  ROUND_OF_16: 'Octavos de final',
+  QUARTER_FINAL: 'Cuartos de final',
+  SEMI_FINAL: 'Semifinal',
+  THIRD_PLACE: 'Tercer puesto',
+  FINAL: 'Final',
+}
+
+const PENDING_PHASE_BADGES: Record<string, string> = {
+  GROUP_STAGE: 'Grupos',
+  ROUND_OF_16: 'Octavos',
+  QUARTER_FINAL: 'Cuartos',
+  SEMI_FINAL: 'Semifinal',
+  THIRD_PLACE: 'Tercer puesto',
+  FINAL: 'Final',
+}
+
+function getPendingPhaseLabel(phase: string): string {
+  return PENDING_PHASE_LABELS[phase] ?? getKnockoutPhaseLabel(phase)
+}
+
+function getPendingPhaseBadge(phase: string): string | null {
+  return PENDING_PHASE_BADGES[phase] ?? null
+}
+
+function getPendingPhaseBadgeClass(phase: string): string {
+  if (phase === 'GROUP_STAGE') return 'bg-emerald-100 text-emerald-800'
+  if (phase === 'ROUND_OF_16') return 'bg-sky-100 text-sky-800'
+  if (phase === 'QUARTER_FINAL') return 'bg-violet-100 text-violet-800'
+  if (phase === 'SEMI_FINAL') return 'bg-indigo-100 text-indigo-800'
+  if (phase === 'THIRD_PLACE') return 'bg-amber-100 text-amber-800'
+  if (phase === 'FINAL') return 'bg-rose-100 text-rose-800'
+  return 'bg-slate-100 text-slate-700'
 }
 
 export default function AdminRemindersPage() {
@@ -192,6 +229,10 @@ export default function AdminRemindersPage() {
                   : null
                 const isEditing = editingUserId === row.participantUserId
                 const isSaving = savingUserId === row.participantUserId
+                const nextMatch = row.nextPendingMatch
+                const nextPhaseBadge = nextMatch
+                  ? getPendingPhaseBadge(nextMatch.phase)
+                  : null
 
                 return (
                   <tr key={row.cardId} className="align-top hover:bg-violet-50/30">
@@ -254,18 +295,31 @@ export default function AdminRemindersPage() {
                       {row.pendingCount}
                     </td>
                     <td className="px-4 py-3 text-slate-800">
-                      {row.nextPendingMatch ? (
-                        <div>
+                      {nextMatch ? (
+                        <div className="space-y-1">
+                          {row.pendingCount > 1 && (
+                            <p className="text-xs font-medium text-amber-800">
+                              {row.pendingCount} pendientes oficiales · próximo:
+                            </p>
+                          )}
+                          {nextPhaseBadge ? (
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${getPendingPhaseBadgeClass(nextMatch.phase)}`}
+                            >
+                              {nextPhaseBadge}
+                            </span>
+                          ) : null}
+                          <p className="text-xs font-semibold text-violet-900">
+                            {getPendingPhaseLabel(nextMatch.phase)}
+                          </p>
                           <p className="font-medium text-slate-950">
-                            {row.nextPendingMatch.label}
+                            {nextMatch.label}
                           </p>
                           <time
-                            dateTime={row.nextPendingMatch.match_date}
+                            dateTime={nextMatch.match_date}
                             className="text-xs text-slate-600"
                           >
-                            {formatMatchDatePeru(
-                              row.nextPendingMatch.match_date
-                            )}
+                            {formatMatchDatePeru(nextMatch.match_date)}
                           </time>
                         </div>
                       ) : (

@@ -27,6 +27,7 @@ export type PendingMatchSummary = {
   id: string
   match_date: string
   label: string
+  phase: string
 }
 
 export type AdminReminderRow = {
@@ -115,6 +116,7 @@ function getPendingMatchesForCard(
         id: match.id,
         match_date: match.match_date,
         label: formatKnockoutMatchOrigin(match) ?? `Partido ${match.match_number ?? ''}`,
+        phase: match.phase,
       })
     }
     return pending.sort(
@@ -130,6 +132,7 @@ function getPendingMatchesForCard(
       id: match.id,
       match_date: match.match_date,
       label: formatGroupMatchLabel(match),
+      phase: match.phase,
     })
   }
 
