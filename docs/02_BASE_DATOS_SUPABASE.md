@@ -228,6 +228,8 @@ Campos principales (ver `lib/types.ts` → `CardPredictionDetail`):
 | `save_knockout_match_result_and_recalculate` | `p_match_number`, `p_local_score_real`, `p_visitor_score_real`, `p_winner_team_id` | Admin: resultado eliminatoria + recálculo + propagación |
 | `admin_update_card_status` | `p_card_id`, `p_status` | Cambia `ACTIVE` / `INACTIVE` |
 | `admin_update_setting` | `p_key`, `p_value` | Actualiza `settings` (admin) |
+| `admin_list_cards` | — | Listado global de cartillas con participante, email y conteo de pronósticos |
+| `admin_get_dashboard_stats` | — | Resumen JSON para panel `/admin` |
 
 ### Internas (servidor / llamadas encadenadas)
 

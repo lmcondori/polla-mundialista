@@ -1,16 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import AdminKnockoutResultsSection from '@/components/AdminKnockoutResultsSection'
 import AdminMatchResultRow from '@/components/AdminMatchResultRow'
-import Navbar from '@/components/Navbar'
+import AdminShell from '@/components/AdminShell'
 import { fetchMatchesWithTeams } from '@/lib/matches'
+import { AdminRouteLoading, useAdminRoute } from '@/lib/useAdminRoute'
 import { supabase } from '@/lib/supabaseClient'
 import type { MatchWithTeams } from '@/lib/types'
 
-type AccessState = 'checking' | 'denied' | 'allowed'
 type StageView = 'GROUP_STAGE' | 'KNOCKOUT_STAGE'
 type StatusFilter = 'ALL' | 'PENDING' | 'FINISHED'
 type DateFilter = 'ALL' | 'TODAY' | 'CUSTOM'
@@ -53,9 +51,8 @@ function getPeruDateLabel(dateIso: string): string {
 }
 
 export default function AdminResultsPage() {
-  const router = useRouter()
-  const [accessState, setAccessState] = useState<AccessState>('checking')
-  const [stageView, setStageView] = useState<StageView>('GROUP_STAGE')
+  const { accessState, handleLogout, AdminDenied } = useAdminRoute()
+  const [stageView, setStageView] = useState<StageView>('KNOCKOUT_STAGE')
   const [matches, setMatches] = useState<MatchWithTeams[]>([])
   const [matchesLoading, setMatchesLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,12 +62,6 @@ export default function AdminResultsPage() {
   const [customDate, setCustomDate] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({})
-
-  const handleLogout = useCallback(async () => {
-    await supabase.auth.signOut()
-    router.replace('/login')
-    router.refresh()
-  }, [router])
 
   const loadMatches = useCallback(async () => {
     setMatchesLoading(true)
@@ -89,45 +80,10 @@ export default function AdminResultsPage() {
   }, [])
 
   useEffect(() => {
-    async function init() {
-      setAccessState('checking')
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session?.user) {
-        router.replace('/login')
-        return
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
-
-      if (profileError || profile?.role !== 'admin') {
-        setAccessState('denied')
-        return
-      }
-
-      setAccessState('allowed')
-      await loadMatches()
+    if (accessState === 'allowed') {
+      loadMatches()
     }
-
-    init()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) {
-        router.replace('/login')
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [router, loadMatches])
+  }, [accessState, loadMatches])
 
   const filteredMatches = useMemo(() => {
     const teamQuery = searchTerm.trim().toLowerCase()
@@ -217,81 +173,51 @@ export default function AdminResultsPage() {
       stageView === 'GROUP_STAGE' &&
       matchesLoading)
   ) {
-    return (
-      <div className="flex min-h-full items-center justify-center bg-emerald-50">
-        <p className="text-emerald-800">Cargando…</p>
-      </div>
-    )
+    return <AdminRouteLoading />
   }
 
   if (accessState === 'denied') {
     return (
-      <div className="flex min-h-full flex-col bg-gradient-to-b from-emerald-50 to-white">
-        <Navbar showAuthLinks={false} onLogout={handleLogout} />
-
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 py-16 text-center sm:px-6">
-          <p
-            role="alert"
-            className="rounded-xl border border-red-100 bg-red-50 px-6 py-4 text-red-800"
-          >
-            No tienes permisos para acceder a esta sección
-          </p>
-          <Link
-            href="/dashboard"
-            className="mt-6 inline-flex rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700"
-          >
-            Ir al dashboard
-          </Link>
-        </main>
+      <div className="flex min-h-full flex-col bg-gradient-to-b from-slate-50 to-white">
+        <AdminDenied />
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-gradient-to-b from-emerald-50 to-white">
-      <Navbar showAuthLinks={false} onLogout={handleLogout} />
-
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-        <Link
-          href="/dashboard"
-          className="mb-6 inline-flex text-sm font-medium text-emerald-700 hover:underline"
-        >
-          ← Volver al dashboard
-        </Link>
-
-        <header className="mb-8">
-          <h1 className="text-2xl font-bold text-emerald-950 sm:text-3xl">
-            Administrar resultados
-          </h1>
-          <p className="mt-2 text-emerald-800/70">
-            {stageView === 'GROUP_STAGE'
-              ? 'Registra el marcador real de cada partido de fase de grupos. Al guardar se actualiza el partido y se recalculan los puntos de los pronósticos.'
-              : 'Registra marcador y equipo clasificado de eliminatoria directa. Al guardar se recalculan puntos y se propagan equipos a partidos siguientes.'}
-          </p>
-        </header>
+    <AdminShell
+      onLogout={handleLogout}
+      title="Registrar resultados"
+      description={
+        stageView === 'GROUP_STAGE'
+          ? 'Registra el marcador real de cada partido de fase de grupos. Al guardar se actualiza el partido y se recalculan los puntos.'
+          : 'Registra marcador y equipo clasificado de eliminatoria directa. Al guardar se recalculan puntos y se propagan equipos.'
+      }
+    >
+      <div className="mx-auto w-full max-w-2xl">
 
         <div className="mb-6 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setStageView('GROUP_STAGE')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              stageView === 'GROUP_STAGE'
-                ? 'bg-emerald-600 text-white'
-                : 'border border-emerald-200 text-emerald-800 hover:bg-emerald-50'
-            }`}
-          >
-            Fase de grupos
-          </button>
           <button
             type="button"
             onClick={() => setStageView('KNOCKOUT_STAGE')}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               stageView === 'KNOCKOUT_STAGE'
-                ? 'bg-emerald-600 text-white'
-                : 'border border-emerald-200 text-emerald-800 hover:bg-emerald-50'
+                ? 'bg-violet-600 text-white'
+                : 'border border-violet-200 text-violet-900 hover:bg-violet-50'
             }`}
           >
             Llaves
+          </button>
+          <button
+            type="button"
+            onClick={() => setStageView('GROUP_STAGE')}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+              stageView === 'GROUP_STAGE'
+                ? 'bg-violet-600 text-white'
+                : 'border border-violet-200 text-violet-900 hover:bg-violet-50'
+            }`}
+          >
+            Fase de grupos
           </button>
         </div>
 
@@ -477,7 +403,7 @@ export default function AdminResultsPage() {
         )}
           </>
         )}
-      </main>
-    </div>
+      </div>
+    </AdminShell>
   )
 }

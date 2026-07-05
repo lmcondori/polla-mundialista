@@ -1,30 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import Navbar from '@/components/Navbar'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import AdminShell from '@/components/AdminShell'
+import { fetchAdminCards, type AdminCardRow } from '@/lib/adminCards'
+import { AdminRouteLoading, useAdminRoute } from '@/lib/useAdminRoute'
 import { supabase } from '@/lib/supabaseClient'
+import type { CardStage } from '@/lib/types'
 
-type AccessState = 'checking' | 'denied' | 'allowed'
 type CardStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE'
-
-type CardAdminRow = {
-  id: string
-  user_id: string
-  card_name: string
-  status: 'ACTIVE' | 'INACTIVE' | string
-  admin_note: string | null
-  created_at: string
-  updated_at: string
-}
-
-type ProfileMini = {
-  id: string
-  full_name: string | null
-  whatsapp_phone: string | null
-  whatsapp_enabled: boolean | null
-}
+type StageFilter = 'ALL' | CardStage
 
 const PERU_DATE_TIME_FORMAT = new Intl.DateTimeFormat('es-PE', {
   dateStyle: 'medium',
@@ -37,137 +22,73 @@ function formatDatePeru(iso: string) {
 }
 
 function getStatusLabel(status: string) {
-  if (status === 'ACTIVE') return 'Habilitada'
-  if (status === 'INACTIVE') return 'Inhabilitada'
+  if (status === 'ACTIVE') return 'Activa'
+  if (status === 'INACTIVE') return 'Inactiva'
   return status
 }
 
+function getStageLabel(stage: CardStage) {
+  return stage === 'KNOCKOUT_STAGE' ? 'Llaves' : 'Fase de grupos'
+}
+
 export default function AdminCardsPage() {
-  const router = useRouter()
-  const [accessState, setAccessState] = useState<AccessState>('checking')
-  const [cards, setCards] = useState<CardAdminRow[]>([])
-  const [profilesById, setProfilesById] = useState<
-    Record<string, { full_name: string; whatsapp_phone: string | null }>
-  >({})
+  const { accessState, handleLogout, AdminDenied } = useAdminRoute()
+  const [cards, setCards] = useState<AdminCardRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<CardStatusFilter>('ALL')
+  const [stageFilter, setStageFilter] = useState<StageFilter>('ALL')
   const [searchTerm, setSearchTerm] = useState('')
   const [updatingCardId, setUpdatingCardId] = useState<string | null>(null)
-
-  const handleLogout = useCallback(async () => {
-    await supabase.auth.signOut()
-    router.replace('/login')
-    router.refresh()
-  }, [router])
 
   const loadCards = useCallback(async () => {
     setLoading(true)
     setError(null)
 
-    const { data: cardsData, error: cardsError } = await supabase
-      .from('cards')
-      .select('id, user_id, card_name, status, admin_note, created_at, updated_at')
-      .order('created_at', { ascending: false })
+    const { data, error: fetchError } = await fetchAdminCards(supabase)
 
-    if (cardsError) {
-      setError(cardsError.message)
+    if (fetchError) {
+      setError(fetchError)
       setCards([])
-      setProfilesById({})
-      setLoading(false)
-      return
+    } else {
+      setCards(data)
     }
 
-    const nextCards = (cardsData ?? []) as CardAdminRow[]
-    setCards(nextCards)
-
-    const userIds = [...new Set(nextCards.map((card) => card.user_id))]
-
-    if (userIds.length === 0) {
-      setProfilesById({})
-      setLoading(false)
-      return
-    }
-
-    const { data: profilesData, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, full_name, whatsapp_phone, whatsapp_enabled')
-      .in('id', userIds)
-
-    if (profilesError) {
-      setError(profilesError.message)
-      setProfilesById({})
-      setLoading(false)
-      return
-    }
-
-    const map: Record<string, { full_name: string; whatsapp_phone: string | null }> =
-      {}
-    for (const profile of (profilesData ?? []) as ProfileMini[]) {
-      map[profile.id] = {
-        full_name: profile.full_name ?? 'Participante',
-        whatsapp_phone:
-          profile.whatsapp_enabled === false ? null : profile.whatsapp_phone,
-      }
-    }
-    setProfilesById(map)
     setLoading(false)
   }, [])
 
   useEffect(() => {
-    async function init() {
-      setAccessState('checking')
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session?.user) {
-        router.replace('/login')
-        return
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
-
-      if (profileError || profile?.role !== 'admin') {
-        setAccessState('denied')
-        return
-      }
-
-      setAccessState('allowed')
-      await loadCards()
+    if (accessState === 'allowed') {
+      loadCards()
     }
-
-    init()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user) router.replace('/login')
-    })
-
-    return () => subscription.unsubscribe()
-  }, [router, loadCards])
+  }, [accessState, loadCards])
 
   const filteredCards = useMemo(() => {
     const query = searchTerm.trim().toLowerCase()
+
     return cards
       .filter((card) => {
         if (statusFilter === 'ALL') return true
         return card.status === statusFilter
       })
       .filter((card) => {
-        if (!query) return true
-        const participant = (profilesById[card.user_id]?.full_name ?? '').toLowerCase()
-        const cardName = card.card_name.toLowerCase()
-        return participant.includes(query) || cardName.includes(query)
+        if (stageFilter === 'ALL') return true
+        return card.stage === stageFilter
       })
-  }, [cards, statusFilter, searchTerm, profilesById])
+      .filter((card) => {
+        if (!query) return true
+        return (
+          card.participant_name.toLowerCase().includes(query) ||
+          (card.participant_email ?? '').toLowerCase().includes(query) ||
+          card.card_name.toLowerCase().includes(query)
+        )
+      })
+  }, [cards, statusFilter, stageFilter, searchTerm])
 
-  async function handleChangeStatus(card: CardAdminRow, nextStatus: 'ACTIVE' | 'INACTIVE') {
+  async function handleChangeStatus(
+    card: AdminCardRow,
+    nextStatus: 'ACTIVE' | 'INACTIVE'
+  ) {
     setUpdatingCardId(card.id)
     setError(null)
 
@@ -193,186 +114,201 @@ export default function AdminCardsPage() {
   }
 
   if (accessState === 'checking' || (accessState === 'allowed' && loading)) {
-    return (
-      <div className="flex min-h-full items-center justify-center bg-emerald-50">
-        <p className="text-emerald-800">Cargando…</p>
-      </div>
-    )
+    return <AdminRouteLoading />
   }
 
   if (accessState === 'denied') {
     return (
-      <div className="flex min-h-full flex-col bg-gradient-to-b from-emerald-50 to-white">
-        <Navbar showAuthLinks={false} onLogout={handleLogout} />
-        <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 py-16 text-center sm:px-6">
-          <p
-            role="alert"
-            className="rounded-xl border border-red-100 bg-red-50 px-6 py-4 text-red-800"
-          >
-            No tienes permisos para acceder a esta sección
-          </p>
-          <Link
-            href="/dashboard"
-            className="mt-6 inline-flex rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700"
-          >
-            Ir al dashboard
-          </Link>
-        </main>
+      <div className="flex min-h-full flex-col bg-gradient-to-b from-slate-50 to-white">
+        <AdminDenied />
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-gradient-to-b from-emerald-50 to-white">
-      <Navbar showAuthLinks={false} onLogout={handleLogout} />
-
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
-        <Link
-          href="/dashboard"
-          className="mb-6 inline-flex text-sm font-medium text-emerald-700 hover:underline"
+    <AdminShell
+      onLogout={handleLogout}
+      title="Gestión global de cartillas"
+      description="Administra todas las cartillas de todos los participantes. Activa o inactiva cartillas según corresponda."
+    >
+      {error && (
+        <p
+          role="alert"
+          className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
         >
-          ← Volver al dashboard
-        </Link>
+          {error}
+        </p>
+      )}
 
-        <header className="mb-8">
-          <h1 className="text-2xl font-bold text-emerald-950 sm:text-3xl">
-            Administrar cartillas
-          </h1>
-          <p className="mt-2 text-emerald-800/70">
-            Habilita o inhabilita cartillas de participantes.
-          </p>
-        </header>
-
-        {error && (
-          <p
-            role="alert"
-            className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700"
-          >
-            {error}
-          </p>
-        )}
-
-        <section className="mb-6 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="status-filter"
-                className="mb-1 block text-xs font-medium text-emerald-800"
-              >
-                Estado
-              </label>
-              <select
-                id="status-filter"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as CardStatusFilter)}
-                className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-              >
-                <option value="ALL">Todas</option>
-                <option value="ACTIVE">Habilitadas</option>
-                <option value="INACTIVE">Inhabilitadas</option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="search"
-                className="mb-1 block text-xs font-medium text-emerald-800"
-              >
-                Buscar por participante o cartilla
-              </label>
-              <input
-                id="search"
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Nombre del participante o cartilla"
-                className="w-full rounded-lg border border-emerald-200 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
-              />
-            </div>
+      <section className="mb-6 rounded-xl border border-violet-100 bg-white p-4 shadow-sm sm:p-5">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <label
+              htmlFor="stage-filter"
+              className="mb-1 block text-xs font-medium text-slate-800"
+            >
+              Etapa
+            </label>
+            <select
+              id="stage-filter"
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value as StageFilter)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+            >
+              <option value="ALL">Todas</option>
+              <option value="KNOCKOUT_STAGE">Llaves</option>
+              <option value="GROUP_STAGE">Fase de grupos</option>
+            </select>
           </div>
 
-          <p className="mt-3 text-sm text-emerald-800/80">
-            Mostrando <span className="font-semibold">{filteredCards.length}</span> de{' '}
-            <span className="font-semibold">{cards.length}</span> cartillas
-          </p>
-        </section>
-
-        {filteredCards.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 px-6 py-12 text-center">
-            <p className="text-emerald-800/80">
-              No hay cartillas que coincidan con los filtros.
-            </p>
+          <div>
+            <label
+              htmlFor="status-filter"
+              className="mb-1 block text-xs font-medium text-slate-800"
+            >
+              Estado
+            </label>
+            <select
+              id="status-filter"
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as CardStatusFilter)
+              }
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+            >
+              <option value="ALL">Todas</option>
+              <option value="ACTIVE">Activas</option>
+              <option value="INACTIVE">Inactivas</option>
+            </select>
           </div>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-emerald-100 bg-white shadow-sm">
-            <table className="w-full min-w-[1100px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-emerald-100 bg-emerald-50/80">
-                  <th className="px-4 py-3 font-semibold text-emerald-900">ID</th>
-                  <th className="px-4 py-3 font-semibold text-emerald-900">Cartilla</th>
-                  <th className="px-4 py-3 font-semibold text-emerald-900">Participante</th>
-                  <th className="px-4 py-3 font-semibold text-emerald-900">WhatsApp</th>
-                  <th className="px-4 py-3 font-semibold text-emerald-900">Estado</th>
-                  <th className="px-4 py-3 font-semibold text-emerald-900">Creación</th>
-                  <th className="px-4 py-3 font-semibold text-emerald-900">Nota administrativa</th>
-                  <th className="px-4 py-3 text-right font-semibold text-emerald-900">Acción</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-emerald-50">
-                {filteredCards.map((card) => {
-                  const participantName =
-                    profilesById[card.user_id]?.full_name ?? 'Participante'
-                  const whatsappPhone =
-                    profilesById[card.user_id]?.whatsapp_phone ?? null
-                  const isActive = card.status === 'ACTIVE'
-                  const nextStatus = isActive ? 'INACTIVE' : 'ACTIVE'
-                  const isUpdating = updatingCardId === card.id
 
-                  return (
-                    <tr key={card.id} className="align-top hover:bg-emerald-50/40">
-                      <td className="px-4 py-3 font-mono text-xs text-emerald-800">
-                        {card.id}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-emerald-950">{card.card_name}</td>
-                      <td className="px-4 py-3 text-emerald-800">{participantName}</td>
-                      <td className="px-4 py-3 text-emerald-800">
-                        {whatsappPhone ? (
-                          whatsappPhone
-                        ) : (
-                          <span className="text-emerald-700/60">
-                            Sin número registrado
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            isActive
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-slate-200 text-slate-700'
-                          }`}
+          <div>
+            <label
+              htmlFor="search"
+              className="mb-1 block text-xs font-medium text-slate-800"
+            >
+              Buscar por participante o cartilla
+            </label>
+            <input
+              id="search"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Nombre, email o cartilla"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+            />
+          </div>
+        </div>
+
+        <p className="mt-3 text-sm text-slate-700/80">
+          Mostrando <span className="font-semibold">{filteredCards.length}</span>{' '}
+          de <span className="font-semibold">{cards.length}</span> cartillas
+        </p>
+      </section>
+
+      {filteredCards.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-violet-200 bg-violet-50/40 px-6 py-12 text-center">
+          <p className="text-slate-700/80">
+            No hay cartillas que coincidan con los filtros.
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-violet-100 bg-white shadow-sm">
+          <table className="w-full min-w-[1200px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-violet-100 bg-violet-50/80">
+                <th className="px-4 py-3 font-semibold text-slate-900">ID</th>
+                <th className="px-4 py-3 font-semibold text-slate-900">
+                  Cartilla
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-900">
+                  Participante
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-900">
+                  Email
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-900">
+                  Etapa
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-900">
+                  Estado
+                </th>
+                <th className="px-4 py-3 font-semibold text-slate-900">
+                  Creación
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-slate-900">
+                  Pronósticos
+                </th>
+                <th className="px-4 py-3 text-right font-semibold text-slate-900">
+                  Acciones
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-violet-50">
+              {filteredCards.map((card) => {
+                const isActive = card.status === 'ACTIVE'
+                const nextStatus = isActive ? 'INACTIVE' : 'ACTIVE'
+                const isUpdating = updatingCardId === card.id
+
+                return (
+                  <tr key={card.id} className="align-top hover:bg-violet-50/30">
+                    <td className="px-4 py-3 font-mono text-xs text-slate-700">
+                      {card.id}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-950">
+                      {card.card_name}
+                    </td>
+                    <td className="px-4 py-3 text-slate-800">
+                      {card.participant_name}
+                    </td>
+                    <td className="px-4 py-3 text-slate-800">
+                      {card.participant_email ?? (
+                        <span className="text-slate-500">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          card.stage === 'KNOCKOUT_STAGE'
+                            ? 'bg-violet-100 text-violet-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`}
+                      >
+                        {getStageLabel(card.stage)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          isActive
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        {getStatusLabel(card.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-800">
+                      <time dateTime={card.created_at}>
+                        {formatDatePeru(card.created_at)}
+                      </time>
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-800">
+                      {card.prediction_count}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col items-end gap-2">
+                        <Link
+                          href={`/cards-public/${card.id}`}
+                          className="inline-flex rounded-lg border border-violet-300 bg-white px-3 py-1.5 text-xs font-medium text-violet-800 transition hover:bg-violet-50"
                         >
-                          {getStatusLabel(card.status)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-emerald-800">
-                        <time dateTime={card.created_at}>
-                          {formatDatePeru(card.created_at)}
-                        </time>
-                      </td>
-                      <td className="px-4 py-3 text-emerald-800/80">
-                        {card.admin_note ? (
-                          card.admin_note
-                        ) : (
-                          <span className="text-emerald-700/60">Sin nota</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
+                          Ver detalle
+                        </Link>
                         <button
                           type="button"
                           disabled={isUpdating}
                           onClick={() => handleChangeStatus(card, nextStatus)}
-                          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
+                          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-60 ${
                             isActive
                               ? 'border border-red-200 text-red-700 hover:bg-red-50'
                               : 'border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
@@ -381,18 +317,18 @@ export default function AdminCardsPage() {
                           {isUpdating
                             ? 'Actualizando…'
                             : isActive
-                              ? 'Inhabilitar'
-                              : 'Habilitar'}
+                              ? 'Inactivar'
+                              : 'Activar'}
                         </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </main>
-    </div>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </AdminShell>
   )
 }

@@ -243,36 +243,26 @@ export default function DashboardPage() {
             >
               Ranking histórico de grupos
             </Link>
-            {isAdmin && (
-              <>
-                <Link
-                  href="/admin/results"
-                  className="inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
-                >
-                  Administrar resultados
-                </Link>
-                <Link
-                  href="/admin/cards"
-                  className="inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
-                >
-                  Administrar cartillas
-                </Link>
-                <Link
-                  href="/admin/reminders"
-                  className="inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
-                >
-                  Recordatorios WhatsApp
-                </Link>
-                <Link
-                  href="/admin/settings"
-                  className="inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
-                >
-                  Configuración del sistema
-                </Link>
-              </>
-            )}
           </div>
         </header>
+
+        {isAdmin && (
+          <section className="mb-8 rounded-xl border border-violet-200 bg-violet-50/60 p-5">
+            <h2 className="text-lg font-semibold text-violet-950">
+              Panel administrador
+            </h2>
+            <p className="mt-2 text-sm text-violet-900/80">
+              Gestión global de cartillas, resultados, recordatorios WhatsApp y
+              configuración del sistema.
+            </p>
+            <Link
+              href="/admin"
+              className="mt-4 inline-flex rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-700"
+            >
+              Ir al panel administrador
+            </Link>
+          </section>
+        )}
 
         {error && (
           <p

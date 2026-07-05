@@ -119,6 +119,7 @@ Antes de implementar cualquier feature o fix:
 | 2026-07 | Fase 11 recordatorios WhatsApp: `005_profiles_whatsapp_fields.sql`, `/admin/reminders` |
 | 2026-07 | Fix puntaje compuesto llaves: `006_fix_knockout_points_composite.sql` (3+2, máx 5 por partido) |
 | 2026-07 | UI: etapa de llaves como fase activa por defecto (ranking, dashboard, portada, navegación); grupos como historial |
+| 2026-07 | Panel administrador `/admin`: ambiente separado, RLS/RPC global admin (`007_admin_global_access.sql`) |
 
 ---
 

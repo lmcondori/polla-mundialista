@@ -25,13 +25,12 @@ export function buildWhatsappReminderMessage(
   stage: CardStage
 ): string {
   const name = participantName.trim() || 'participante'
-  const countLabel = pendingCount === 1 ? '1 pronóstico' : `${pendingCount} pronósticos`
   const stageLabel = getWhatsappStageLabel(stage)
 
   return [
     `Hola ${name}, te recordamos registrar tus pronósticos de la Polla Mundialista 2026.`,
     '',
-    `Tienes ${countLabel} pendiente(s) para la etapa ${stageLabel}.`,
+    `Tienes ${pendingCount} pronóstico(s) pendiente(s) para la etapa ${stageLabel}.`,
     '',
     `Ingresa aquí:`,
     WHATSAPP_DASHBOARD_URL,
@@ -50,6 +49,6 @@ export function buildWhatsappMeUrl(
 }
 
 export function formatWhatsappPhoneDisplay(phone: string | null | undefined): string {
-  if (!phone) return 'Sin número registrado'
+  if (!phone) return 'Sin número'
   return phone
 }

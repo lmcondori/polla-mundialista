@@ -125,6 +125,8 @@ Imports con alias `@/` (ej. `@/lib/types`).
 | `save_knockout_match_result_and_recalculate` | Admin: resultado llaves + recálculo + propagación |
 | `admin_update_card_status` | Admin: `ACTIVE` / `INACTIVE` |
 | `admin_update_setting` | Admin: configuración global |
+| `admin_list_cards` | Admin: listado global de cartillas con email y conteo |
+| `admin_get_dashboard_stats` | Admin: resumen del panel `/admin` |
 
 ### RPC / funciones internas (solo BD)
 
@@ -198,7 +200,8 @@ Detalle completo: [docs/02_BASE_DATOS_SUPABASE.md](./docs/02_BASE_DATOS_SUPABASE
 | `/ranking` | Público | `vw_ranking_cards_knockout` por defecto (`?stage=knockout`); grupos en `?stage=groups` |
 | `/knockout` | Público | Cuadro de llaves real (`matches` 73–104) |
 | `/cards-public/[id]` | Autenticado | `vw_ranking_cards`, `vw_card_prediction_detail` |
-| `/admin/*` | Admin | `cards`, `matches`, RPCs, recordatorios WhatsApp (`/admin/reminders`) |
+| `/admin` | Admin | Panel administrador: resumen global y accesos |
+| `/admin/*` | Admin | Cartillas globales, resultados, recordatorios WhatsApp, settings |
 
 Flujos detallados: [docs/03_FLUJOS_FUNCIONALES.md](./docs/03_FLUJOS_FUNCIONALES.md).
 

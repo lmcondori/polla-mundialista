@@ -11,7 +11,8 @@ Descripción de flujos por actor y ruta. Refleja el comportamiento **implementad
 | `/` | Público | Landing con enlaces a ranking, login y registro |
 | `/register` | Público | Alta de usuario |
 | `/login` | Público | Inicio de sesión |
-| `/dashboard` | Autenticado | Cartillas del usuario |
+| `/dashboard` | Autenticado | Ambiente participante: cartillas propias |
+| `/admin` | Admin | Panel administrador con accesos globales y resumen |
 | `/cards/[id]` | Autenticado (dueño) | Pronósticos de una cartilla |
 | `/cards/[id]/summary` | Autenticado (dueño) | Resumen detallado propio |
 | `/ranking` | Público / autenticado | Ranking y podio; **pestaña Llaves por defecto** (`?stage=knockout`); fase de grupos como historial (`?stage=groups`) |
@@ -248,14 +249,34 @@ flowchart TD
 
 ---
 
-## Flujo 8 — Administración de cartillas
+## Flujo 8 — Panel administrador y cartillas globales
+
+**Ruta principal:** `/admin`
+
+Panel separado del ambiente participante. Accesos:
+
+- `/admin/cards` — gestión global de cartillas
+- `/admin/results` — registrar resultados
+- `/admin/reminders` — recordatorios WhatsApp manuales globales
+- `/admin/settings` — configuración del sistema
+
+**Protección:** hook `useAdminRoute` + `checkAdminAccess` (`lib/adminAuth.ts`). Sin sesión → `/login`. Sin rol `admin` → «Acceso no autorizado».
+
+**Navegación:** enlace «Panel admin» en `Navbar` (solo admins). En `/dashboard`, tarjeta «Panel administrador» → `/admin`.
+
+---
+
+## Flujo 8b — Administración de cartillas
 
 **Ruta:** `/admin/cards`
 
-1. Verificar rol admin.
-2. Listar todas las cartillas (`cards` con RLS admin).
-3. Filtrar por estado y búsqueda.
+1. Verificar rol admin (`useAdminRoute`).
+2. Listar **todas** las cartillas vía RPC `admin_list_cards` (incluye email y conteo de pronósticos) o consulta global con políticas RLS admin.
+3. Filtros: etapa, estado, búsqueda por participante/cartilla/email.
 4. Cambiar estado vía `admin_update_card_status` (`ACTIVE` / `INACTIVE`).
+5. Ver detalle público → `/cards-public/[id]`.
+
+**Archivos:** `app/admin/cards/page.tsx`, `lib/adminCards.ts`, `components/AdminShell.tsx`
 
 ---
 
@@ -307,7 +328,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  A[Admin /admin/reminders] --> B[Cargar cartillas ACTIVE]
+  A[Admin /admin/reminders] --> B[Cargar cartillas ACTIVE globales]
   B --> C[Partidos abiertos con equipos definidos]
   C --> D{Etapa cartilla}
   D -->|GROUP_STAGE| E[Solo phase GROUP_STAGE]
@@ -316,7 +337,7 @@ flowchart TD
   E --> H[Restar pronósticos existentes]
   G --> H
   H --> I{¿Pendientes > 0?}
-  I -->|Sí| J[Listar fila por cartilla]
+  I -->|Sí| J[Listar fila por cartilla de todos los participantes]
   J --> K{¿whatsapp_phone?}
   K -->|Sí| L[Enlace wa.me con mensaje prellenado]
   K -->|No| M[Registrar número en UI]
@@ -324,6 +345,8 @@ flowchart TD
 ```
 
 **Archivos:** `app/admin/reminders/page.tsx`, `lib/adminReminders.ts`, `lib/whatsappReminder.ts`
+
+**Reglas:** listado global (no filtrado por `user_id` del admin). Requiere políticas RLS admin en `cards`, `profiles` y `predictions` (migración `007_admin_global_access.sql`).
 
 **Reglas:**
 
