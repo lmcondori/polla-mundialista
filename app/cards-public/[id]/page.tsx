@@ -8,6 +8,7 @@ import KnockoutOfficialScoringNote from '@/components/KnockoutOfficialScoringNot
 import Navbar from '@/components/Navbar'
 import PublicCardSummaryStats from '@/components/PublicCardSummaryStats'
 import PublicCardSummaryTable from '@/components/PublicCardSummaryTable'
+import { buildCardSummaryStats } from '@/lib/cardSummary'
 import {
   buildKnockoutCardSummaryRows,
   buildKnockoutCardSummaryStats,
@@ -17,9 +18,9 @@ import {
 } from '@/lib/knockoutCardSummary'
 import { fetchKnockoutMatchesWithTeams } from '@/lib/knockoutMatches'
 import { sortMatchesByDateAsc } from '@/lib/matchPrediction'
-import { RANKING_ENTRY_SELECT, rankingHref } from '@/lib/ranking'
+import { rankingHref } from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
-import type { CardPredictionDetail, CardStage, RankingEntry } from '@/lib/types'
+import type { CardPredictionDetail, CardStage } from '@/lib/types'
 
 const NOT_FOUND_MESSAGE =
   'No se encontró la cartilla o no está habilitada para participar.'
@@ -27,7 +28,10 @@ const NOT_FOUND_MESSAGE =
 const EMPTY_PREDICTIONS_MESSAGE =
   'Esta cartilla aún no tiene pronósticos registrados.'
 
-const RANKING_CARD_SELECT = `${RANKING_ENTRY_SELECT}, status`
+type PublicCardMeta = {
+  cardName: string
+  fullName: string
+}
 
 export default function PublicCardDetailPage() {
   const router = useRouter()
@@ -35,7 +39,7 @@ export default function PublicCardDetailPage() {
   const cardId = params.id as string
 
   const [cardStage, setCardStage] = useState<CardStage>('GROUP_STAGE')
-  const [rankingCard, setRankingCard] = useState<RankingEntry | null>(null)
+  const [cardMeta, setCardMeta] = useState<PublicCardMeta | null>(null)
   const [groupRows, setGroupRows] = useState<CardPredictionDetail[]>([])
   const [knockoutRows, setKnockoutRows] = useState<KnockoutCardSummaryRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,26 +52,7 @@ export default function PublicCardDetailPage() {
     router.refresh()
   }, [router])
 
-  const loadGroupDetail = useCallback(async (): Promise<boolean> => {
-    const { data: rankingData, error: rankingError } = await supabase
-      .from('vw_ranking_cards')
-      .select(RANKING_CARD_SELECT)
-      .eq('card_id', cardId)
-      .maybeSingle()
-
-    if (rankingError) {
-      setError(rankingError.message)
-      return true
-    }
-
-    if (!rankingData) {
-      return false
-    }
-
-    const card = rankingData as RankingEntry
-    setCardStage('GROUP_STAGE')
-    setRankingCard(card)
-
+  const loadGroupRows = useCallback(async () => {
     const { data, error: viewError } = await supabase
       .from('vw_card_prediction_detail')
       .select(
@@ -101,34 +86,13 @@ export default function PublicCardDetailPage() {
 
     if (viewError) {
       setError(viewError.message)
-      return true
+      return
     }
 
     setGroupRows((data ?? []) as CardPredictionDetail[])
-    return true
   }, [cardId])
 
-  const loadKnockoutDetail = useCallback(async () => {
-    const { data: rankingData, error: rankingError } = await supabase
-      .from('vw_ranking_cards_knockout')
-      .select(RANKING_CARD_SELECT)
-      .eq('card_id', cardId)
-      .maybeSingle()
-
-    if (rankingError) {
-      setError(rankingError.message)
-      return
-    }
-
-    if (!rankingData) {
-      setNotFound(true)
-      return
-    }
-
-    const card = rankingData as RankingEntry
-    setCardStage('KNOCKOUT_STAGE')
-    setRankingCard(card)
-
+  const loadKnockoutRows = useCallback(async () => {
     try {
       const [matchesResult, predictionsResult] = await Promise.all([
         fetchKnockoutMatchesWithTeams(),
@@ -167,7 +131,7 @@ export default function PublicCardDetailPage() {
     setLoading(true)
     setError(null)
     setNotFound(false)
-    setRankingCard(null)
+    setCardMeta(null)
     setGroupRows([])
     setKnockoutRows([])
 
@@ -180,13 +144,53 @@ export default function PublicCardDetailPage() {
       return
     }
 
-    const loadedGroup = await loadGroupDetail()
-    if (!loadedGroup) {
-      await loadKnockoutDetail()
+    const { data: cardData, error: cardError } = await supabase
+      .from('cards')
+      .select('id, card_name, user_id, stage, status')
+      .eq('id', cardId)
+      .eq('status', 'ACTIVE')
+      .maybeSingle()
+
+    if (cardError) {
+      setError(cardError.message)
+      setLoading(false)
+      return
+    }
+
+    if (!cardData) {
+      setNotFound(true)
+      setLoading(false)
+      return
+    }
+
+    const stage = (cardData.stage ?? 'GROUP_STAGE') as CardStage
+    setCardStage(stage)
+
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', cardData.user_id)
+      .maybeSingle()
+
+    if (profileError) {
+      setError(profileError.message)
+      setLoading(false)
+      return
+    }
+
+    setCardMeta({
+      cardName: cardData.card_name,
+      fullName: profileData?.full_name ?? '—',
+    })
+
+    if (stage === 'KNOCKOUT_STAGE') {
+      await loadKnockoutRows()
+    } else {
+      await loadGroupRows()
     }
 
     setLoading(false)
-  }, [loadGroupDetail, loadKnockoutDetail, router])
+  }, [cardId, loadGroupRows, loadKnockoutRows, router])
 
   useEffect(() => {
     loadData()
@@ -204,6 +208,11 @@ export default function PublicCardDetailPage() {
 
   const sortedGroupRows = useMemo(
     () => sortMatchesByDateAsc(groupRows),
+    [groupRows]
+  )
+
+  const groupStats = useMemo(
+    () => buildCardSummaryStats(groupRows),
     [groupRows]
   )
 
@@ -242,12 +251,12 @@ export default function PublicCardDetailPage() {
           <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/50 px-6 py-12 text-center">
             <p className="text-emerald-800/80">{NOT_FOUND_MESSAGE}</p>
           </div>
-        ) : rankingCard ? (
+        ) : cardMeta ? (
           <>
             <header className="mb-6">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-2xl font-bold text-emerald-950 sm:text-3xl">
-                  {rankingCard.card_name}
+                  {cardMeta.cardName}
                 </h1>
                 {isKnockout && (
                   <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-800">
@@ -258,7 +267,7 @@ export default function PublicCardDetailPage() {
               <p className="mt-2 text-emerald-800">
                 Participante:{' '}
                 <span className="font-semibold text-emerald-950">
-                  {rankingCard.full_name}
+                  {cardMeta.fullName}
                 </span>
               </p>
               <p className="mt-2 text-sm text-emerald-800/70">
@@ -281,24 +290,18 @@ export default function PublicCardDetailPage() {
 
             <PublicCardSummaryStats
               totalPoints={
-                isKnockout
-                  ? knockoutStats.totalPoints
-                  : (rankingCard.total_points ?? 0)
+                isKnockout ? knockoutStats.totalPoints : groupStats.totalPoints
               }
               exactScores={
-                isKnockout
-                  ? knockoutStats.exactScores
-                  : (rankingCard.exact_scores ?? 0)
+                isKnockout ? knockoutStats.exactScores : groupStats.exactScores
               }
               resultHits={
-                isKnockout
-                  ? knockoutStats.resultHits
-                  : (rankingCard.result_hits ?? 0)
+                isKnockout ? knockoutStats.resultHits : groupStats.resultHits
               }
               totalPredictions={
                 isKnockout
                   ? knockoutStats.totalPredictions
-                  : (rankingCard.total_predictions ?? 0)
+                  : groupStats.totalPredictions
               }
               {...(isKnockout ? getKnockoutSummaryStatLabelProps() : {})}
             />

@@ -1,4 +1,5 @@
 import TeamFlag from '@/components/TeamFlag'
+import { formatMatchDatePeru } from '@/lib/matchPrediction'
 import {
   resolveKnockoutRowResultDisplay,
   type KnockoutCardSummaryRow,
@@ -95,6 +96,7 @@ export default function KnockoutCardSummaryTable({
         <table className="w-full min-w-[1100px] text-left text-sm">
           <thead>
             <tr className="border-b border-emerald-100 bg-emerald-50/80">
+              <th className="px-4 py-3 font-semibold text-emerald-900">Fecha</th>
               <th className="px-4 py-3 font-semibold text-emerald-900">Fase</th>
               <th className="px-4 py-3 font-semibold text-emerald-900">N.º</th>
               <th className="px-4 py-3 font-semibold text-emerald-900">Local</th>
@@ -125,6 +127,11 @@ export default function KnockoutCardSummaryTable({
 
               return (
               <tr key={row.prediction_id} className="hover:bg-emerald-50/40">
+                <td className="px-4 py-3 text-xs text-emerald-800/80">
+                  <time dateTime={row.match_date}>
+                    {formatMatchDatePeru(row.match_date)}
+                  </time>
+                </td>
                 <td className="px-4 py-3 text-emerald-800">{row.phase_label}</td>
                 <td className="px-4 py-3 tabular-nums text-emerald-800">
                   {row.match_number ?? '—'}
@@ -212,6 +219,12 @@ export default function KnockoutCardSummaryTable({
             className="rounded-xl border border-emerald-100 bg-white p-4 shadow-sm"
           >
             <div className="mb-3 flex flex-wrap items-center gap-2">
+              <time
+                dateTime={row.match_date}
+                className="text-xs text-emerald-700/75"
+              >
+                {formatMatchDatePeru(row.match_date)}
+              </time>
               <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-800">
                 {row.phase_label}
               </span>
