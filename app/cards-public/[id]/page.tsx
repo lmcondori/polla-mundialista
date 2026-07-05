@@ -4,11 +4,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import KnockoutCardSummaryTable from '@/components/KnockoutCardSummaryTable'
+import KnockoutOfficialScoringNote from '@/components/KnockoutOfficialScoringNote'
 import Navbar from '@/components/Navbar'
 import PublicCardSummaryStats from '@/components/PublicCardSummaryStats'
 import PublicCardSummaryTable from '@/components/PublicCardSummaryTable'
 import {
   buildKnockoutCardSummaryRows,
+  buildKnockoutCardSummaryStats,
+  getKnockoutSummaryStatLabelProps,
   type KnockoutCardSummaryRow,
   type KnockoutPredictionRow,
 } from '@/lib/knockoutCardSummary'
@@ -204,6 +207,11 @@ export default function PublicCardDetailPage() {
     [groupRows]
   )
 
+  const knockoutStats = useMemo(
+    () => buildKnockoutCardSummaryStats(knockoutRows),
+    [knockoutRows]
+  )
+
   const isKnockout = cardStage === 'KNOCKOUT_STAGE'
 
   if (loading) {
@@ -258,11 +266,7 @@ export default function PublicCardDetailPage() {
                 permanecen ocultos hasta su inicio.
               </p>
               {isKnockout && (
-                <p className="mt-2 text-sm text-emerald-800/70">
-                  Puntaje oficial desde octavos de final. Los pronósticos de
-                  16avos se muestran abajo marcados como fuera del puntaje
-                  oficial.
-                </p>
+                <KnockoutOfficialScoringNote className="mt-4" />
               )}
             </header>
 
@@ -276,20 +280,27 @@ export default function PublicCardDetailPage() {
             )}
 
             <PublicCardSummaryStats
-              totalPoints={rankingCard.total_points ?? 0}
-              exactScores={rankingCard.exact_scores ?? 0}
-              resultHits={rankingCard.result_hits ?? 0}
-              totalPredictions={rankingCard.total_predictions ?? 0}
-              exactScoresLabel={
-                isKnockout ? 'Marcadores exactos' : undefined
+              totalPoints={
+                isKnockout
+                  ? knockoutStats.totalPoints
+                  : (rankingCard.total_points ?? 0)
               }
-              resultHitsLabel={
-                isKnockout ? 'Aciertos de clasificado' : undefined
+              exactScores={
+                isKnockout
+                  ? knockoutStats.exactScores
+                  : (rankingCard.exact_scores ?? 0)
               }
-              totalPointsLabel={isKnockout ? 'Puntos oficiales' : undefined}
-              totalPredictionsLabel={
-                isKnockout ? 'Pronósticos oficiales' : undefined
+              resultHits={
+                isKnockout
+                  ? knockoutStats.resultHits
+                  : (rankingCard.result_hits ?? 0)
               }
+              totalPredictions={
+                isKnockout
+                  ? knockoutStats.totalPredictions
+                  : (rankingCard.total_predictions ?? 0)
+              }
+              {...(isKnockout ? getKnockoutSummaryStatLabelProps() : {})}
             />
 
             {isKnockout ? (

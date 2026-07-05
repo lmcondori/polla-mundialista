@@ -175,7 +175,7 @@ export default function KnockoutCardSummaryTable({
                       flagUrl={row.winner_flag_url}
                     />
                   ) : (
-                    <span className="text-emerald-800/70">Pendiente de resultado</span>
+                    <span className="text-emerald-800/70">Pendiente</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-center font-semibold tabular-nums text-emerald-700">
@@ -262,7 +262,7 @@ export default function KnockoutCardSummaryTable({
               <div className="rounded-lg bg-emerald-50/80 p-2">
                 <dt className="text-emerald-700/70">Clasificado real</dt>
                 <dd className="mt-0.5 font-medium text-emerald-900">
-                  {row.winner_label ?? 'Pendiente de resultado'}
+                  {row.winner_label ?? 'Pendiente'}
                 </dd>
               </div>
               <div className="col-span-2 rounded-lg bg-emerald-50/80 p-2 text-center">

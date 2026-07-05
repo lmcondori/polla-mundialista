@@ -35,10 +35,12 @@ export type KnockoutCardSummaryRow = {
   visitor_flag_url: string | null
   local_score_predicted: number
   visitor_score_predicted: number
+  predicted_winner_team_id: string | null
   predicted_winner_label: string
   predicted_winner_flag_url: string | null
   local_score_real: number | null
   visitor_score_real: number | null
+  winner_team_id: string | null
   winner_label: string | null
   winner_flag_url: string | null
   points: number
@@ -48,6 +50,25 @@ export type KnockoutCardSummaryRow = {
 }
 
 export type KnockoutResultFilter = 'ALL' | KnockoutPredictionResultType
+
+export const KNOCKOUT_OFFICIAL_SCORING_NOTE =
+  'El puntaje oficial de llaves se calcula desde octavos de final hasta la final. Los 16avos se muestran como referencia y no suman al ranking oficial.'
+
+export const KNOCKOUT_SUMMARY_LABELS = {
+  totalPoints: 'Puntos oficiales',
+  exactScores: 'Marcadores exactos',
+  resultHits: 'Clasificados acertados',
+  totalPredictions: 'Pronósticos oficiales',
+} as const
+
+export function getKnockoutSummaryStatLabelProps() {
+  return {
+    exactScoresLabel: KNOCKOUT_SUMMARY_LABELS.exactScores,
+    resultHitsLabel: KNOCKOUT_SUMMARY_LABELS.resultHits,
+    totalPointsLabel: KNOCKOUT_SUMMARY_LABELS.totalPoints,
+    totalPredictionsLabel: KNOCKOUT_SUMMARY_LABELS.totalPredictions,
+  }
+}
 
 function resolveTeamById(
   match: KnockoutMatchWithTeams,
@@ -141,6 +162,22 @@ export function resolveKnockoutRowResultDisplay(row: KnockoutCardSummaryRow): {
   }
 }
 
+export function isKnockoutExactScore(row: KnockoutCardSummaryRow): boolean {
+  if (!hasKnockoutMatchResult(row)) return false
+  return (
+    row.local_score_predicted === row.local_score_real &&
+    row.visitor_score_predicted === row.visitor_score_real
+  )
+}
+
+export function isKnockoutClassifierHit(row: KnockoutCardSummaryRow): boolean {
+  if (!hasKnockoutMatchResult(row)) return false
+  if (row.predicted_winner_team_id && row.winner_team_id) {
+    return row.predicted_winner_team_id === row.winner_team_id
+  }
+  return row.points === 2 || row.points === 5
+}
+
 export function buildKnockoutCardSummaryRows(
   predictions: KnockoutPredictionRow[],
   matches: KnockoutMatchWithTeams[]
@@ -188,10 +225,12 @@ export function buildKnockoutCardSummaryRows(
           visitor_flag_url: visitor.flag_url,
           local_score_predicted: prediction.local_score_predicted,
           visitor_score_predicted: prediction.visitor_score_predicted,
-          predicted_winner_label: predictedWinner?.name ?? '—',
+          predicted_winner_team_id: prediction.predicted_winner_team_id,
+          predicted_winner_label: predictedWinner?.name ?? 'Sin clasificado',
           predicted_winner_flag_url: predictedWinner?.flag_url ?? null,
           local_score_real: match.local_score_real,
           visitor_score_real: match.visitor_score_real,
+          winner_team_id: match.winner_team_id,
           winner_label: realWinner?.name ?? null,
           winner_flag_url: realWinner?.flag_url ?? null,
           points: prediction.points,
@@ -203,33 +242,27 @@ export function buildKnockoutCardSummaryRows(
     })
 }
 
+export function getKnockoutOfficialSummaryRows(
+  rows: KnockoutCardSummaryRow[]
+): KnockoutCardSummaryRow[] {
+  return rows.filter((row) => row.counts_for_official_ranking)
+}
+
 export function buildKnockoutCardSummaryStats(rows: KnockoutCardSummaryRow[]) {
   const officialRows = getKnockoutOfficialSummaryRows(rows)
 
   return {
     totalPoints: officialRows.reduce((sum, row) => sum + (row.points ?? 0), 0),
-    exactScores: officialRows.filter(
-      (row) => row.points === 3 || row.points === 5
-    ).length,
-    resultHits: officialRows.filter(
-      (row) => row.points === 2 || row.points === 5
-    ).length,
+    exactScores: officialRows.filter(isKnockoutExactScore).length,
+    resultHits: officialRows.filter(isKnockoutClassifierHit).length,
     missed: officialRows.filter(
       (row) =>
         hasKnockoutMatchResult(row) &&
         getKnockoutPredictionResultFromPoints(row.points, true) === 'NO_ACERTADO'
     ).length,
-    pending: officialRows.filter(
-      (row) => !hasKnockoutMatchResult(row)
-    ).length,
+    pending: officialRows.filter((row) => !hasKnockoutMatchResult(row)).length,
     totalPredictions: officialRows.length,
   }
-}
-
-export function getKnockoutOfficialSummaryRows(
-  rows: KnockoutCardSummaryRow[]
-): KnockoutCardSummaryRow[] {
-  return rows.filter((row) => row.counts_for_official_ranking)
 }
 
 export const KNOCKOUT_PREDICTION_RESULT_FILTERS: {

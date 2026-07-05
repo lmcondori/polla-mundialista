@@ -74,7 +74,7 @@ Registro de trabajo futuro, restricciones explícitas y notas para agentes/desar
 | Pruebas automatizadas | Media | No hay suite unitaria ni e2e en el repo |
 | Middleware de auth | Media | Protección actual es client-side por página |
 | README del proyecto | Baja | `README.md` sigue siendo plantilla de create-next-app |
-| Vista pública cartillas de llaves | Media | `/cards-public/[id]` solo soporta `GROUP_STAGE`; ranking de llaves no enlaza detalle público |
+| Vista pública cartillas de llaves | — | `/cards-public/[id]` soporta `KNOCKOUT_STAGE` con stats oficiales desde octavos |
 | Protección server-side | Baja | Evaluar Server Components / Route Handlers si se endurece seguridad |
 | Confirmación email registro | Baja | Depende de configuración Supabase Auth |
 | Etiquetas UI fases eliminatorias | ✅ Completado | Fases 4–8: dashboard, pronósticos, admin, ranking, resumen y revisión final |
@@ -120,6 +120,7 @@ Antes de implementar cualquier feature o fix:
 | 2026-07 | Fix puntaje compuesto llaves: `006_fix_knockout_points_composite.sql` (3+2, máx 5 por partido) |
 | 2026-07 | UI: etapa de llaves como fase activa por defecto (ranking, dashboard, portada, navegación); grupos como historial |
 | 2026-07 | Panel administrador `/admin`: ambiente separado, RLS/RPC global admin (`007_admin_global_access.sql`) |
+| 2026-07 | Resumen/detalle llaves: stats oficiales desde octavos, clasificado pronosticado/real, estados por puntos |
 
 ---
 

@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import CardSummaryStats from '@/components/CardSummaryStats'
 import CardSummaryTable from '@/components/CardSummaryTable'
 import KnockoutCardSummaryTable from '@/components/KnockoutCardSummaryTable'
+import KnockoutOfficialScoringNote from '@/components/KnockoutOfficialScoringNote'
 import Navbar from '@/components/Navbar'
 import {
   buildCardSummaryStats,
@@ -16,6 +17,7 @@ import {
 import {
   buildKnockoutCardSummaryRows,
   buildKnockoutCardSummaryStats,
+  getKnockoutSummaryStatLabelProps,
   KNOCKOUT_PREDICTION_RESULT_FILTERS,
   type KnockoutPredictionRow,
   type KnockoutResultFilter,
@@ -322,9 +324,10 @@ export default function CardSummaryPage() {
           </div>
           <p className="mt-2 text-emerald-800/70">
             {isKnockout
-              ? 'Puntaje oficial desde octavos de final. Los pronósticos de 16avos se muestran abajo pero no suman al total.'
+              ? 'Resumen de pronósticos de eliminatoria directa.'
               : 'Revisa el avance de tu cartilla y los puntos obtenidos por partido.'}
           </p>
+          {isKnockout && <KnockoutOfficialScoringNote className="mt-4" />}
         </header>
 
         {error && (
@@ -343,16 +346,7 @@ export default function CardSummaryPage() {
           missed={stats.missed}
           pending={stats.pending}
           totalPredictions={stats.totalPredictions}
-          exactScoresLabel={
-            isKnockout ? 'Marcadores exactos' : undefined
-          }
-          resultHitsLabel={
-            isKnockout ? 'Aciertos de clasificado' : undefined
-          }
-          totalPointsLabel={isKnockout ? 'Puntos oficiales' : undefined}
-          totalPredictionsLabel={
-            isKnockout ? 'Pronósticos oficiales' : undefined
-          }
+          {...(isKnockout ? getKnockoutSummaryStatLabelProps() : {})}
         />
 
         <section className="mb-6 rounded-xl border border-emerald-100 bg-white p-4 shadow-sm sm:p-5">

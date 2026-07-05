@@ -212,11 +212,11 @@ flowchart LR
 1. Usuario autenticado.
 2. Verificar que la cartilla pertenece al usuario (`cards` + `user_id`).
 3. Según `cards.stage`:
-   - **`GROUP_STAGE`:** cargar `vw_card_prediction_detail` filtrado por `card_id` (comportamiento original).
-   - **`KNOCKOUT_STAGE`:** cargar `predictions` + partidos eliminatoria (`matches` con equipos); mostrar marcador, clasificado pronosticado/real y placeholders de plantilla.
+   - **`GROUP_STAGE`:** cargar `vw_card_prediction_detail` filtrado por `card_id` (comportamiento original). Stats: puntos totales, scores exactos, aciertos de resultado.
+   - **`KNOCKOUT_STAGE`:** cargar `predictions` + partidos eliminatoria; stats oficiales solo desde octavos (`buildKnockoutCardSummaryStats` en `lib/knockoutCardSummary.ts`). Etiquetas: Puntos oficiales, Marcadores exactos, Clasificados acertados, Pronósticos oficiales. Tabla con clasificado pronosticado (`predicted_winner_team_id`) y real (`winner_team_id`). Estados por `points`: 5 / 3 / 2 / 0. `ROUND_OF_32` visible como referencia, marcado «Fuera del puntaje oficial».
 4. Mostrar estadísticas y tabla con todos los pronósticos (incluidos futuros, porque es el dueño).
 
-**Archivos:** `app/cards/[id]/summary/page.tsx`, `components/CardSummaryStats.tsx`, `components/CardSummaryTable.tsx`, `components/KnockoutCardSummaryTable.tsx`, `lib/cardSummary.ts`, `lib/knockoutCardSummary.ts`
+**Archivos:** `app/cards/[id]/summary/page.tsx`, `components/CardSummaryStats.tsx`, `components/CardSummaryTable.tsx`, `components/KnockoutCardSummaryTable.tsx`, `components/KnockoutOfficialScoringNote.tsx`, `lib/cardSummary.ts`, `lib/knockoutCardSummary.ts`
 
 ---
 
@@ -239,12 +239,13 @@ flowchart TD
   J -->|No| L[Mostrar pronóstico y puntos]
 ```
 
-**Archivos:** `app/cards-public/[id]/page.tsx`, `components/PublicCardSummaryStats.tsx`, `components/PublicCardSummaryTable.tsx`
+**Archivos:** `app/cards-public/[id]/page.tsx`, `components/PublicCardSummaryStats.tsx`, `components/PublicCardSummaryTable.tsx`, `components/KnockoutCardSummaryTable.tsx`, `components/KnockoutOfficialScoringNote.tsx`, `lib/knockoutCardSummary.ts`
 
 **Reglas críticas:**
 
-- **No** consultar `cards` ni `profiles` para datos ajenos.
-- Fuente principal: `vw_ranking_cards` + `vw_card_prediction_detail`.
+- Grupos: `vw_ranking_cards` + `vw_card_prediction_detail`.
+- Llaves: `vw_ranking_cards_knockout` + `predictions`/`matches`; stats desde `buildKnockoutCardSummaryStats` (solo fases oficiales desde octavos).
+- Ocultar pronósticos futuros hasta `match_date` (marcador y clasificado pronosticado).
 - Solo lectura; sin edición.
 
 ---
