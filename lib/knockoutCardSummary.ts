@@ -2,6 +2,7 @@ import {
   getKnockoutPhaseLabel,
   getKnockoutSideLabel,
   isKnockoutOfficialRankingPhase,
+  isKnockoutSideDefined,
   sortKnockoutMatchesByPhaseAndDate,
 } from '@/lib/knockoutMatches'
 import type { KnockoutMatchWithTeams, Team } from '@/lib/types'
@@ -31,18 +32,22 @@ export type KnockoutCardSummaryRow = {
   match_number: number | null
   local_label: string
   local_flag_url: string | null
+  local_fifa_code: string | null
   visitor_label: string
   visitor_flag_url: string | null
+  visitor_fifa_code: string | null
   local_score_predicted: number
   visitor_score_predicted: number
   predicted_winner_team_id: string | null
   predicted_winner_label: string
   predicted_winner_flag_url: string | null
+  predicted_winner_fifa_code: string | null
   local_score_real: number | null
   visitor_score_real: number | null
   winner_team_id: string | null
   winner_label: string | null
   winner_flag_url: string | null
+  winner_fifa_code: string | null
   points: number
   prediction_result: KnockoutPredictionResultType
   counts_for_official_ranking: boolean
@@ -83,8 +88,17 @@ function resolveTeamById(
 function getSideDisplay(
   match: KnockoutMatchWithTeams,
   side: 'local' | 'visitor'
-): { label: string; flag_url: string | null } {
-  return getKnockoutSideLabel(match, side)
+): { label: string; flag_url: string | null; fifa_code: string | null } {
+  const team = side === 'local' ? match.local_team : match.visitor_team
+  if (isKnockoutSideDefined(match, side) && team) {
+    return {
+      label: team.name,
+      flag_url: team.flag_url ?? null,
+      fifa_code: team.fifa_code ?? null,
+    }
+  }
+  const { label, flag_url } = getKnockoutSideLabel(match, side)
+  return { label, flag_url, fifa_code: null }
 }
 
 export function hasKnockoutMatchResult(
@@ -221,18 +235,22 @@ export function buildKnockoutCardSummaryRows(
           match_number: match.match_number,
           local_label: local.label,
           local_flag_url: local.flag_url,
+          local_fifa_code: local.fifa_code,
           visitor_label: visitor.label,
           visitor_flag_url: visitor.flag_url,
+          visitor_fifa_code: visitor.fifa_code,
           local_score_predicted: prediction.local_score_predicted,
           visitor_score_predicted: prediction.visitor_score_predicted,
           predicted_winner_team_id: prediction.predicted_winner_team_id,
           predicted_winner_label: predictedWinner?.name ?? 'Sin clasificado',
           predicted_winner_flag_url: predictedWinner?.flag_url ?? null,
+          predicted_winner_fifa_code: predictedWinner?.fifa_code ?? null,
           local_score_real: match.local_score_real,
           visitor_score_real: match.visitor_score_real,
           winner_team_id: match.winner_team_id,
           winner_label: realWinner?.name ?? null,
           winner_flag_url: realWinner?.flag_url ?? null,
+          winner_fifa_code: realWinner?.fifa_code ?? null,
           points: prediction.points,
           prediction_result: predictionResult,
           counts_for_official_ranking: isKnockoutOfficialRankingPhase(match.phase),

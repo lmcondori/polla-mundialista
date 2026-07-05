@@ -1,3 +1,4 @@
+import TeamCompact from '@/components/TeamCompact'
 import TeamFlag from '@/components/TeamFlag'
 import { formatMatchDatePeru } from '@/lib/matchPrediction'
 import {
@@ -31,16 +32,6 @@ function renderPredictedScore(
     return HIDDEN_PREDICTION_TEXT
   }
   return formatScore(row.local_score_predicted, row.visitor_score_predicted)
-}
-
-function renderPredictedWinner(
-  row: KnockoutCardSummaryRow,
-  publicView: boolean
-): string {
-  if (publicView && !isMatchStarted(row.match_date)) {
-    return HIDDEN_PREDICTION_TEXT
-  }
-  return row.predicted_winner_label
 }
 
 function renderPoints(row: KnockoutCardSummaryRow, publicView: boolean) {
@@ -77,6 +68,20 @@ function TeamCell({
   )
 }
 
+function TeamCellCompact({
+  name,
+  fifaCode,
+  flagUrl,
+}: {
+  name: string
+  fifaCode: string | null
+  flagUrl: string | null
+}) {
+  return (
+    <TeamCompact name={name} fifa_code={fifaCode} flag_url={flagUrl} />
+  )
+}
+
 export default function KnockoutCardSummaryTable({
   rows,
   publicView = false,
@@ -93,7 +98,7 @@ export default function KnockoutCardSummaryTable({
   return (
     <>
       <div className="hidden overflow-x-auto rounded-xl border border-emerald-100 bg-white shadow-sm lg:block">
-        <table className="w-full min-w-[1100px] text-left text-sm">
+        <table className="w-full min-w-[920px] text-left text-sm">
           <thead>
             <tr className="border-b border-emerald-100 bg-emerald-50/80">
               <th className="px-4 py-3 font-semibold text-emerald-900">Fecha</th>
@@ -136,12 +141,17 @@ export default function KnockoutCardSummaryTable({
                 <td className="px-4 py-3 tabular-nums text-emerald-800">
                   {row.match_number ?? '—'}
                 </td>
-                <td className="px-4 py-3">
-                  <TeamCell label={row.local_label} flagUrl={row.local_flag_url} />
+                <td className="px-3 py-3">
+                  <TeamCellCompact
+                    name={row.local_label}
+                    fifaCode={row.local_fifa_code}
+                    flagUrl={row.local_flag_url}
+                  />
                 </td>
-                <td className="px-4 py-3">
-                  <TeamCell
-                    label={row.visitor_label}
+                <td className="px-3 py-3">
+                  <TeamCellCompact
+                    name={row.visitor_label}
+                    fifaCode={row.visitor_fifa_code}
                     flagUrl={row.visitor_flag_url}
                   />
                 </td>
@@ -159,15 +169,16 @@ export default function KnockoutCardSummaryTable({
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-3">
                   {publicView &&
                   !isMatchStarted(row.match_date) ? (
                     <span className="text-xs italic text-emerald-700/70">
                       {HIDDEN_PREDICTION_TEXT}
                     </span>
                   ) : (
-                    <TeamCell
-                      label={row.predicted_winner_label}
+                    <TeamCellCompact
+                      name={row.predicted_winner_label}
+                      fifaCode={row.predicted_winner_fifa_code}
                       flagUrl={row.predicted_winner_flag_url}
                     />
                   )}
@@ -175,17 +186,18 @@ export default function KnockoutCardSummaryTable({
                 <td className="px-4 py-3 text-center tabular-nums text-emerald-900">
                   {formatScore(row.local_score_real, row.visitor_score_real)}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-3">
                   {row.winner_label ? (
-                    <TeamCell
-                      label={row.winner_label}
+                    <TeamCellCompact
+                      name={row.winner_label}
+                      fifaCode={row.winner_fifa_code}
                       flagUrl={row.winner_flag_url}
                     />
                   ) : (
                     <span className="text-emerald-800/70">Pendiente</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-center font-semibold tabular-nums text-emerald-700">
+                <td className="px-3 py-3 text-center font-semibold tabular-nums text-emerald-700">
                   {renderPoints(row, publicView)}
                 </td>
                 <td className="px-4 py-3">
@@ -263,7 +275,16 @@ export default function KnockoutCardSummaryTable({
               <div className="rounded-lg bg-emerald-50/80 p-2">
                 <dt className="text-emerald-700/70">Clasificado pronosticado</dt>
                 <dd className="mt-0.5 font-medium text-emerald-900">
-                  {renderPredictedWinner(row, publicView)}
+                  {publicView && !isMatchStarted(row.match_date) ? (
+                    <span className="text-xs italic text-emerald-700/70">
+                      {HIDDEN_PREDICTION_TEXT}
+                    </span>
+                  ) : (
+                    <TeamCell
+                      label={row.predicted_winner_label}
+                      flagUrl={row.predicted_winner_flag_url}
+                    />
+                  )}
                 </dd>
               </div>
               <div className="rounded-lg bg-emerald-50/80 p-2">
@@ -275,7 +296,14 @@ export default function KnockoutCardSummaryTable({
               <div className="rounded-lg bg-emerald-50/80 p-2">
                 <dt className="text-emerald-700/70">Clasificado real</dt>
                 <dd className="mt-0.5 font-medium text-emerald-900">
-                  {row.winner_label ?? 'Pendiente'}
+                  {row.winner_label ? (
+                    <TeamCell
+                      label={row.winner_label}
+                      flagUrl={row.winner_flag_url}
+                    />
+                  ) : (
+                    'Pendiente'
+                  )}
                 </dd>
               </div>
               <div className="col-span-2 rounded-lg bg-emerald-50/80 p-2 text-center">
