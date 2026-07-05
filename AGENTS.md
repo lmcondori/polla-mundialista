@@ -41,7 +41,7 @@ Este archivo define el **contrato de trabajo** para cualquier agente o desarroll
 
 **Fase de grupos (implementada):** cartillas `GROUP_STAGE`, pronósticos de marcador, ranking en `vw_ranking_cards`.
 
-**Etapa eliminatoria (implementada):** cartillas separadas `KNOCKOUT_STAGE`, pronósticos de marcador + equipo clasificado, ranking en `vw_ranking_cards_knockout` (pestaña Llaves en `/ranking`), admin de resultados con propagación, resumen propio.
+**Etapa eliminatoria (implementada, fase activa):** cartillas separadas `KNOCKOUT_STAGE`, pronósticos de marcador + equipo clasificado, ranking en `vw_ranking_cards_knockout` (pestaña Llaves por defecto en `/ranking`), admin de resultados con propagación, resumen propio. Fase de grupos permanece disponible como historial.
 
 - **UI:** español.
 - **Zona horaria:** Perú (`America/Lima`).
@@ -195,7 +195,7 @@ Detalle completo: [docs/02_BASE_DATOS_SUPABASE.md](./docs/02_BASE_DATOS_SUPABASE
 | `/dashboard` | Autenticado | `cards`, `profiles`, `settings` |
 | `/cards/[id]` | Dueño | `cards`, `matches`, `predictions` |
 | `/cards/[id]/summary` | Dueño | `vw_card_prediction_detail` (grupos) o `predictions` + `matches` (llaves) |
-| `/ranking` | Público | `vw_ranking_cards`, `vw_ranking_cards_knockout` (pestañas) |
+| `/ranking` | Público | `vw_ranking_cards_knockout` por defecto (`?stage=knockout`); grupos en `?stage=groups` |
 | `/knockout` | Público | Cuadro de llaves real (`matches` 73–104) |
 | `/cards-public/[id]` | Autenticado | `vw_ranking_cards`, `vw_card_prediction_detail` |
 | `/admin/*` | Admin | `cards`, `matches`, RPCs, recordatorios WhatsApp (`/admin/reminders`) |

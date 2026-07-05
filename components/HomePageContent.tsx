@@ -13,6 +13,7 @@ import {
 import {
   fetchRankingForStage,
   getPodiumRankedEntries,
+  rankingHref,
 } from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
 import type { CardStage, RankingEntryWithRank } from '@/lib/types'
@@ -103,7 +104,7 @@ export default function HomePageContent() {
     setTodayMatches(matchesToday)
 
     const { data: rankingData, error: rankingError } =
-      await fetchRankingForStage(supabase, 'GROUP_STAGE')
+      await fetchRankingForStage(supabase, 'KNOCKOUT_STAGE')
 
     if (rankingError) {
       setError(rankingError.message)
@@ -132,10 +133,13 @@ export default function HomePageContent() {
           id: String(card.id),
           stage: (card.stage ?? 'GROUP_STAGE') as CardStage,
         }))
-        const activeCardIds = activeCards.map((card) => card.id)
+        const knockoutActiveCards = activeCards.filter(
+          (card) => card.stage === 'KNOCKOUT_STAGE'
+        )
+        const activeCardIds = knockoutActiveCards.map((card) => card.id)
         const officialOpenMatchIds = new Set<string>()
 
-        for (const card of activeCards) {
+        for (const card of knockoutActiveCards) {
           for (const match of matchesToday) {
             if (isOfficialOpenPendingMatch(match, card.stage)) {
               officialOpenMatchIds.add(match.id)
@@ -165,7 +169,7 @@ export default function HomePageContent() {
         }
 
         setPendingSummary(
-          computePendingSummary(matchesToday, activeCards, predictedPairs)
+          computePendingSummary(matchesToday, knockoutActiveCards, predictedPairs)
         )
       }
     } else {
@@ -197,16 +201,16 @@ export default function HomePageContent() {
             Polla Mundialista 2026
           </h1>
           <p className="mx-auto mb-10 max-w-xl text-lg leading-relaxed text-emerald-900/80">
-            Aplicación recreativa para pronosticar resultados de partidos del
-            Mundial.
+            Aplicación recreativa para pronosticar la etapa de llaves del
+            Mundial. La fase de grupos permanece disponible como historial.
           </p>
 
           <div className="flex w-full flex-col gap-3 sm:mx-auto sm:max-w-lg sm:flex-row sm:flex-wrap sm:justify-center">
             <Link
-              href="/ranking"
+              href={rankingHref('KNOCKOUT_STAGE')}
               className="rounded-xl border border-emerald-300 bg-white px-6 py-3 font-semibold text-emerald-800 transition hover:bg-emerald-50"
             >
-              Ver ranking
+              Ver ranking de llaves
             </Link>
             {isAuthenticated ? (
               <Link
@@ -272,13 +276,13 @@ export default function HomePageContent() {
             {showPendingSection && pendingSummary && (
               <section className="rounded-xl border border-emerald-100 bg-white p-5 shadow-sm">
                 <h2 className="mb-4 text-lg font-bold text-emerald-950">
-                  Tus pendientes de hoy
+                  Tus pendientes de llaves hoy
                 </h2>
 
                 {pendingSummary.activeCards === 0 ? (
                   <p className="mb-4 text-sm text-emerald-800/80">
-                    No tienes cartillas habilitadas. Crea o activa una cartilla
-                    para pronosticar.
+                    No tienes cartillas de llaves habilitadas. Crea o activa una
+                    cartilla de llaves para pronosticar.
                   </p>
                 ) : (
                   <>
@@ -337,22 +341,22 @@ export default function HomePageContent() {
                   className="inline-flex w-full justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
                 >
                   {pendingSummary.pending > 0
-                    ? 'Completar pronósticos'
-                    : 'Ir a mis cartillas'}
+                    ? 'Completar pronósticos de llaves'
+                    : 'Ir a mis cartillas de llaves'}
                 </Link>
               </section>
             )}
 
             <section className="rounded-xl border border-emerald-100 bg-white p-5 shadow-sm">
               <h2 className="mb-4 text-lg font-bold text-emerald-950">
-                Ranking destacado
+                Ranking de llaves
               </h2>
 
               {loading ? (
                 <p className="text-sm text-emerald-800">Cargando ranking…</p>
               ) : topRanking.length === 0 ? (
                 <p className="text-sm text-emerald-800/80">
-                  Aún no hay cartillas en el ranking.
+                  Aún no hay cartillas en el ranking de llaves.
                 </p>
               ) : (
                 <ol className="space-y-3">
@@ -389,10 +393,10 @@ export default function HomePageContent() {
               )}
 
               <Link
-                href="/ranking"
+                href={rankingHref('KNOCKOUT_STAGE')}
                 className="mt-4 inline-flex w-full justify-center rounded-xl border border-emerald-300 bg-white px-4 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
               >
-                Ver ranking completo
+                Ver ranking completo de llaves
               </Link>
             </section>
           </aside>

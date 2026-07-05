@@ -14,7 +14,7 @@ Descripción de flujos por actor y ruta. Refleja el comportamiento **implementad
 | `/dashboard` | Autenticado | Cartillas del usuario |
 | `/cards/[id]` | Autenticado (dueño) | Pronósticos de una cartilla |
 | `/cards/[id]/summary` | Autenticado (dueño) | Resumen detallado propio |
-| `/ranking` | Público / autenticado | Ranking y podio (pestañas: fase de grupos y llaves) |
+| `/ranking` | Público / autenticado | Ranking y podio; **pestaña Llaves por defecto** (`?stage=knockout`); fase de grupos como historial (`?stage=groups`) |
 | `/cards-public/[id]` | Autenticado | Vista pública de cartilla ajena |
 | `/admin/cards` | Admin | Gestión de cartillas |
 | `/admin/results` | Admin | Carga de resultados |
@@ -83,6 +83,12 @@ flowchart TD
 ```
 
 **Archivos:** `app/dashboard/page.tsx`, `components/CardForm.tsx`, `components/CardList.tsx`
+
+**Orden UI (etapa activa = llaves):**
+
+- Creación: primero cartilla de llaves, luego fase de grupos.
+- Listado: «Mis cartillas de llaves» arriba; «Mis cartillas de fase de grupos» abajo (historial).
+- Enlaces principales: ranking de llaves y cuadro `/knockout`.
 
 **Acciones desde cartilla:**
 
@@ -174,9 +180,9 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  A[/ranking] --> B{Pestaña activa}
-  B -->|Grupos| C[SELECT vw_ranking_cards]
+  A[/ranking?stage=knockout por defecto] --> B{Pestaña activa}
   B -->|Llaves| D[SELECT vw_ranking_cards_knockout]
+  B -->|Grupos| C[SELECT vw_ranking_cards]
   C --> E[Ordenar por puntos totales y calcular ranking denso]
   D --> E
   E --> F[Podio puestos 1–3 con empates]
@@ -190,8 +196,9 @@ flowchart LR
 
 - Solo cartillas `ACTIVE` (las vistas ya las filtran).
 - Cartillas `INACTIVE` no aparecen.
-- Pestaña «Fase de grupos»: `vw_ranking_cards` (sin cambios).
-- Pestaña «Llaves»: `vw_ranking_cards_knockout`; solo octavos en adelante; `exact_scores` = aciertos de marcador exacto (3 o 5 pts); `result_hits` = aciertos de clasificado (2 o 5 pts); sin enlace a vista pública (solo grupos).
+- **Por defecto:** pestaña «Llaves» (`/ranking` o `/ranking?stage=knockout`). Query `?stage=groups` abre fase de grupos.
+- Pestaña «Fase de grupos»: `vw_ranking_cards` (historial; sin cambios en datos).
+- Pestaña «Llaves»: `vw_ranking_cards_knockout`; solo octavos en adelante; `exact_scores` = aciertos de marcador exacto (3 o 5 pts); `result_hits` = aciertos de clasificado (2 o 5 pts).
 - Orden oficial: `total_points` desc; empates comparten posición; ranking denso (1, 1, 2, 2, 3) vía `calculateDenseRankingPositions` en `lib/ranking.ts`.
 - Texto UI: «El ranking se ordena por puntos totales. En caso de empate, las cartillas comparten la misma posición.» + «La numeración de puestos usa ranking denso: 1, 1, 2, 2, 3.»
 
@@ -291,7 +298,7 @@ flowchart TD
 - Fuente: `public.matches` con `match_number` entre 73 y 104.
 - Placeholders según `local_source_*` / `visitor_source_*` (`WINNER` / `LOSER`).
 - Equipos propagados por admin aparecen cuando `local_team_id` / `visitor_team_id` están definidos.
-- Navegación principal: enlace «Llaves» en `Navbar` (ya no «Llaves probables»).
+- Navegación principal: «Ranking» → `/ranking?stage=knockout`; enlace «Llaves» → `/knockout` (no «Llaves probables»).
 - `/knockout-preview` permanece como proyección referencial de fase de grupos, **fuera del menú**.
 
 ---

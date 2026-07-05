@@ -9,6 +9,7 @@ import CardForm from '@/components/CardForm'
 import CardList from '@/components/CardList'
 import KnockoutRulesPanel from '@/components/KnockoutRulesPanel'
 import { evaluateCreationDeadline } from '@/lib/settingsDeadline'
+import { rankingHref } from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
 import type { Card, CardStage } from '@/lib/types'
 
@@ -218,20 +219,29 @@ export default function DashboardPage() {
             Hola, {greetingName}
           </h1>
           <p className="mt-2 text-emerald-800/70">
-            Administra tus cartillas de pronósticos por etapa.
+            Administra tus cartillas de pronósticos.{' '}
+            <span className="font-medium text-violet-800">
+              Fase activa: etapa de llaves.
+            </span>
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
-              href="/ranking"
-              className="inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
+              href={rankingHref('KNOCKOUT_STAGE')}
+              className="inline-flex rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
             >
-              Ver ranking
+              Ver ranking de llaves
             </Link>
             <Link
               href="/knockout"
               className="inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
             >
               Cuadro de llaves
+            </Link>
+            <Link
+              href={rankingHref('GROUP_STAGE')}
+              className="inline-flex rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
+            >
+              Ranking histórico de grupos
             </Link>
             {isAdmin && (
               <>
@@ -278,6 +288,25 @@ export default function DashboardPage() {
             Crear cartilla
           </h2>
           <div className="grid gap-4 lg:grid-cols-2">
+            {knockoutCreationGate.canCreate ? (
+              <CardForm
+                title="Llaves"
+                submitLabel="Crear cartilla de llaves"
+                cardName={knockoutCardName}
+                onCardNameChange={setKnockoutCardName}
+                onSubmit={handleCreateKnockoutCard}
+                loading={creatingKnockout}
+                deadlineLabel={knockoutCreationGate.deadlineLabel}
+              />
+            ) : (
+              <div
+                role="status"
+                className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900"
+              >
+                La creación de cartillas de llaves ya se encuentra cerrada.
+              </div>
+            )}
+
             {groupCreationGate.canCreate ? (
               <CardForm
                 title="Fase de grupos"
@@ -297,41 +326,10 @@ export default function DashboardPage() {
                 cerrada.
               </div>
             )}
-
-            {knockoutCreationGate.canCreate ? (
-              <CardForm
-                title="Llaves"
-                submitLabel="Crear cartilla de llaves"
-                cardName={knockoutCardName}
-                onCardNameChange={setKnockoutCardName}
-                onSubmit={handleCreateKnockoutCard}
-                loading={creatingKnockout}
-                deadlineLabel={knockoutCreationGate.deadlineLabel}
-              />
-            ) : (
-              <div
-                role="status"
-                className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900"
-              >
-                La creación de cartillas de llaves ya se encuentra cerrada.
-              </div>
-            )}
           </div>
         </section>
 
         <section className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold text-emerald-900">
-            Mis cartillas de fase de grupos
-          </h2>
-          <CardList
-            cards={groupCards}
-            loading={cardsLoading}
-            stage="GROUP_STAGE"
-            emptyMessage="Aún no tienes cartillas de fase de grupos. Crea una arriba."
-          />
-        </section>
-
-        <section>
           <h2 className="mb-3 text-lg font-semibold text-emerald-900">
             Mis cartillas de llaves
           </h2>
@@ -341,6 +339,21 @@ export default function DashboardPage() {
             loading={cardsLoading}
             stage="KNOCKOUT_STAGE"
             emptyMessage="Aún no tienes cartillas de llaves. Crea una arriba."
+          />
+        </section>
+
+        <section>
+          <h2 className="mb-1 text-lg font-semibold text-emerald-900">
+            Mis cartillas de fase de grupos
+          </h2>
+          <p className="mb-3 text-sm text-emerald-800/70">
+            Historial de la fase de grupos. La etapa activa es la de llaves.
+          </p>
+          <CardList
+            cards={groupCards}
+            loading={cardsLoading}
+            stage="GROUP_STAGE"
+            emptyMessage="Aún no tienes cartillas de fase de grupos."
           />
         </section>
       </main>

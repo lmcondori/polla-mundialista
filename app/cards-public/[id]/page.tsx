@@ -14,7 +14,7 @@ import {
 } from '@/lib/knockoutCardSummary'
 import { fetchKnockoutMatchesWithTeams } from '@/lib/knockoutMatches'
 import { sortMatchesByDateAsc } from '@/lib/matchPrediction'
-import { RANKING_ENTRY_SELECT } from '@/lib/ranking'
+import { RANKING_ENTRY_SELECT, rankingHref } from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
 import type { CardPredictionDetail, CardStage, RankingEntry } from '@/lib/types'
 
@@ -220,7 +220,11 @@ export default function PublicCardDetailPage() {
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
         <Link
-          href="/ranking"
+          href={
+            isKnockout
+              ? rankingHref('KNOCKOUT_STAGE')
+              : rankingHref('GROUP_STAGE')
+          }
           className="mb-6 inline-flex text-sm font-medium text-emerald-700 hover:underline"
         >
           ← Volver al ranking

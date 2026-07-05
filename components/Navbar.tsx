@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { rankingHref } from '@/lib/ranking'
 
 type NavbarProps = {
   showAuthLinks?: boolean
@@ -18,7 +19,7 @@ export default function Navbar({ showAuthLinks = true, onLogout }: NavbarProps) 
 
         <div className="flex items-center gap-2 text-sm font-medium sm:gap-3">
           <Link
-            href="/ranking"
+            href={rankingHref('KNOCKOUT_STAGE')}
             className="rounded-lg px-3 py-2 text-emerald-800 transition hover:bg-emerald-50"
           >
             Ranking

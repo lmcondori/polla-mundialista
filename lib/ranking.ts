@@ -7,6 +7,26 @@ export const RANKING_ENTRY_SELECT =
 
 export type RankingStage = 'GROUP_STAGE' | 'KNOCKOUT_STAGE'
 
+export type RankingStageQuery = 'knockout' | 'groups'
+
+/** Etapa activa por defecto en navegación y ranking. */
+export const DEFAULT_RANKING_STAGE: RankingStage = 'KNOCKOUT_STAGE'
+
+export function rankingStageFromQuery(
+  param: string | null | undefined
+): RankingStage {
+  if (param === 'groups') return 'GROUP_STAGE'
+  return 'KNOCKOUT_STAGE'
+}
+
+export function rankingQueryFromStage(stage: RankingStage): RankingStageQuery {
+  return stage === 'KNOCKOUT_STAGE' ? 'knockout' : 'groups'
+}
+
+export function rankingHref(stage: RankingStage = DEFAULT_RANKING_STAGE): string {
+  return `/ranking?stage=${rankingQueryFromStage(stage)}`
+}
+
 export const RANKING_VIEW_BY_STAGE: Record<RankingStage, string> = {
   GROUP_STAGE: 'vw_ranking_cards',
   KNOCKOUT_STAGE: 'vw_ranking_cards_knockout',

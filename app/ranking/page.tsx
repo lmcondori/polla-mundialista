@@ -1,43 +1,76 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import KnockoutRulesPanel from '@/components/KnockoutRulesPanel'
 import RankingPodium from '@/components/RankingPodium'
 import RankingSummaryCards from '@/components/RankingSummaryCards'
 import RankingTable from '@/components/RankingTable'
-import { fetchRankingForStage, type RankingStage } from '@/lib/ranking'
+import {
+  fetchRankingForStage,
+  rankingQueryFromStage,
+  rankingStageFromQuery,
+  type RankingStage,
+} from '@/lib/ranking'
 import { supabase } from '@/lib/supabaseClient'
 import type { RankingEntry } from '@/lib/types'
 
 const RANKING_TABS: { value: RankingStage; label: string }[] = [
-  { value: 'GROUP_STAGE', label: 'Fase de grupos' },
   { value: 'KNOCKOUT_STAGE', label: 'Llaves' },
+  { value: 'GROUP_STAGE', label: 'Fase de grupos' },
 ]
 
 const RANKING_COPY: Record<
   RankingStage,
-  { title: string; description: string; tableTitle: string }
+  {
+    title: string
+    description: string
+    tableTitle: string
+    stageNote: string
+  }
 > = {
-  GROUP_STAGE: {
-    title: 'Ranking general',
-    description: 'Clasificación por puntos totales de cada cartilla de grupos.',
-    tableTitle: 'Tabla general',
-  },
   KNOCKOUT_STAGE: {
     title: 'Ranking de llaves',
     description:
       'Clasificación oficial desde octavos de final hasta la final. Los 16avos no suman al puntaje.',
     tableTitle: 'Tabla de llaves',
+    stageNote: 'Fase activa: etapa de llaves.',
+  },
+  GROUP_STAGE: {
+    title: 'Ranking de fase de grupos',
+    description:
+      'Clasificación histórica por puntos totales de cada cartilla de grupos.',
+    tableTitle: 'Tabla de fase de grupos',
+    stageNote:
+      'Fase de grupos disponible como historial. La etapa activa es la de llaves.',
   },
 }
 
-export default function RankingPage() {
-  const [activeStage, setActiveStage] = useState<RankingStage>('GROUP_STAGE')
+function RankingPageContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const stageParam = searchParams.get('stage')
+
+  const [activeStage, setActiveStage] = useState<RankingStage>(
+    rankingStageFromQuery(stageParam)
+  )
   const [entries, setEntries] = useState<RankingEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setActiveStage(rankingStageFromQuery(stageParam))
+  }, [stageParam])
+
+  const handleStageChange = useCallback(
+    (stage: RankingStage) => {
+      const query = rankingQueryFromStage(stage)
+      router.replace(`/ranking?stage=${query}`, { scroll: false })
+    },
+    [router]
+  )
 
   useEffect(() => {
     async function loadRanking() {
@@ -71,6 +104,9 @@ export default function RankingPage() {
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:px-6">
         <header className="mb-8 text-center sm:text-left">
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-violet-700">
+            {copy.stageNote}
+          </p>
           <h1 className="text-2xl font-bold text-emerald-950 sm:text-3xl">
             {copy.title}
           </h1>
@@ -105,7 +141,7 @@ export default function RankingPage() {
               type="button"
               role="tab"
               aria-selected={activeStage === tab.value}
-              onClick={() => setActiveStage(tab.value)}
+              onClick={() => handleStageChange(tab.value)}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
                 activeStage === tab.value
                   ? 'bg-emerald-600 text-white shadow-sm'
@@ -153,5 +189,24 @@ export default function RankingPage() {
         )}
       </main>
     </div>
+  )
+}
+
+function RankingPageFallback() {
+  return (
+    <div className="flex min-h-full flex-col bg-gradient-to-b from-emerald-50 to-white">
+      <Navbar />
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:px-6">
+        <p className="py-12 text-center text-emerald-800">Cargando ranking…</p>
+      </main>
+    </div>
+  )
+}
+
+export default function RankingPage() {
+  return (
+    <Suspense fallback={<RankingPageFallback />}>
+      <RankingPageContent />
+    </Suspense>
   )
 }
